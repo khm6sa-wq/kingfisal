@@ -1,0 +1,26 @@
+{
+  "name": "king-faisal-clinics-queue",
+  "version": "1.0.0",
+  "description": "نظام إدارة الطوابير للعيادات التخصصية - مستشفى الملك فيصل",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.kingfaisal.clinics.queue",
+    "productName": "King Faisal Clinics Queue",
+    "files": [
+      "main.js",
+      "index.html",
+      "sounds/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
