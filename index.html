@@ -1504,12 +1504,40 @@
                 };
             }
 
-            function applyRemoteState(data) {
+            const LOCAL_CACHE_KEY = 'kfh_queue_state_cache_v1';
+
+            function saveLocalCache(data) {
+                try {
+                    if (!data || typeof data !== 'object') return;
+                    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
+                        ...data,
+                        updatedAt: Number(data.updatedAt) || Date.now()
+                    }));
+                } catch (_) {}
+            }
+
+            function loadLocalCache() {
+                try {
+                    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+                    if (!raw) return null;
+                    const parsed = JSON.parse(raw);
+                    return parsed && typeof parsed === 'object' ? parsed : null;
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            function applyRemoteState(data, options = {}) {
                 if (!data || typeof data !== 'object') return;
+                const forceApply = Boolean(options.force);
                 const incomingStamp = Number(data.updatedAt) || 0;
-                if (incomingStamp && incomingStamp <= lastLocalStamp) return;
-                if (incomingStamp && incomingStamp < lastRemoteUpdatedAt) return;
-                if (incomingStamp) lastRemoteUpdatedAt = incomingStamp;
+                if (!forceApply) {
+                    if (activeMutations > 0 && incomingStamp && incomingStamp <= lastLocalStamp) return;
+                    if (lastRemoteUpdatedAt && incomingStamp && incomingStamp < lastRemoteUpdatedAt) return;
+                }
+                if (incomingStamp) {
+                    lastRemoteUpdatedAt = Math.max(lastRemoteUpdatedAt, incomingStamp);
+                }
 
                 clinicsList = mergeDefaultClinics(data.clinicsList);
                 ticketsList = Array.isArray(data.ticketsList) ? data.ticketsList : [];
@@ -1522,6 +1550,16 @@
                 if (data.currentLanguage === 'en' || data.currentLanguage === 'ar') {
                     currentLanguage = data.currentLanguage;
                 }
+                saveLocalCache({
+                    clinicsList,
+                    ticketsList,
+                    centerName,
+                    customLogoDataUrl,
+                    navbarShape,
+                    interfaceTheme,
+                    currentLanguage,
+                    updatedAt: incomingStamp || lastRemoteUpdatedAt || Date.now()
+                });
             }
 
             function renderActiveView() {
@@ -1550,10 +1588,15 @@
                 renderActiveView();
 
                 const payload = buildAppwritePayload(stamp);
+                saveLocalCache(payload);
                 if (typeof firestoreSaveFn === 'function') {
                     firestoreSaveFn(payload)
+                        .then(() => {
+                            setSyncStatus(true, (UI_TEXTS[currentLanguage] || UI_TEXTS.ar).liveStatus);
+                        })
                         .catch((err) => {
                             console.warn('تعذر مزامنة التغيير مع Appwrite:', err);
+                            setSyncStatus(false, (UI_TEXTS[currentLanguage] || UI_TEXTS.ar).offlineStatus);
                         })
                         .finally(() => {
                             activeMutations = Math.max(0, activeMutations - 1);
@@ -2695,11 +2738,17 @@
 
             async function initAppwriteSync() {
                 try {
-                    const { Client, Account, Databases, ID } = await withTimeout(
+                    const appwriteMod = await withTimeout(
                         import('https://esm.sh/appwrite@17.0.0'),
-                        5000,
+                        6000,
                         'Appwrite SDK load timed out'
                     );
+                    const Client = appwriteMod.Client;
+                    const Account = appwriteMod.Account;
+                    const Databases = appwriteMod.Databases;
+                    const Permission = appwriteMod.Permission;
+                    const Role = appwriteMod.Role;
+                    const ID = appwriteMod.ID;
 
                     const client = new Client()
                         .setEndpoint('https://fra.cloud.appwrite.io/v1')
@@ -2711,6 +2760,14 @@
                     const collectionId = '6b87dab00018a18de490';
                     const documentId = 'main_state';
 
+                    const docPermissions = Permission && Role
+                        ? [
+                            Permission.read(Role.any()),
+                            Permission.create(Role.any()),
+                            Permission.update(Role.any())
+                        ]
+                        : undefined;
+
                     firestoreSaveFn = async (payload) => {
                         const serialized = JSON.stringify(payload);
                         const docData = {
@@ -2719,15 +2776,23 @@
                         try {
                             return await withTimeout(
                                 databases.updateDocument(databaseId, collectionId, documentId, docData),
-                                6000,
+                                7000,
                                 'Appwrite update timed out'
                             );
-                        } catch (_) {
-                            return await withTimeout(
-                                databases.createDocument(databaseId, collectionId, documentId, docData),
-                                6000,
-                                'Appwrite create timed out'
-                            );
+                        } catch (updateErr) {
+                            const createArgs = docPermissions
+                                ? [databaseId, collectionId, documentId, docData, docPermissions]
+                                : [databaseId, collectionId, documentId, docData];
+                            try {
+                                return await withTimeout(
+                                    databases.createDocument(...createArgs),
+                                    7000,
+                                    'Appwrite create timed out'
+                                );
+                            } catch (createErr) {
+                                console.warn('Appwrite save error:', updateErr, createErr);
+                                throw createErr;
+                            }
                         }
                     };
 
@@ -2735,21 +2800,36 @@
                         await withTimeout(account.createAnonymousSession(), 5000, 'Anonymous session timed out');
                     } catch (_) {}
 
-                    isAppwriteReady = true;
-                    const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                    setSyncStatus(true, t.liveStatus.replace('Appwrite', 'Appwrite'));
-
                     const syncOnce = async () => {
                         try {
-                            const res = await databases.getDocument(databaseId, collectionId, documentId);
-                            const rawPayload = res && typeof res.payload === 'string' && res.payload.trim()
-                                ? JSON.parse(res.payload)
-                                : (res && res.payloadJson ? JSON.parse(res.payloadJson) : res);
+                            const res = await withTimeout(
+                                databases.getDocument(databaseId, collectionId, documentId),
+                                7000,
+                                'Appwrite getDocument timed out'
+                            );
+                            isAppwriteReady = true;
+                            const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                            setSyncStatus(true, currentT.liveStatus);
+
+                            let rawPayload = null;
+                            if (res && typeof res.payload === 'string' && res.payload.trim()) {
+                                rawPayload = JSON.parse(res.payload);
+                            } else if (res && typeof res.payloadJson === 'string' && res.payloadJson.trim()) {
+                                rawPayload = JSON.parse(res.payloadJson);
+                            } else if (res && typeof res === 'object') {
+                                rawPayload = res;
+                            }
+
                             const docUpdatedAtMs = res && res.$updatedAt ? Date.parse(res.$updatedAt) : 0;
                             const incomingStamp = Number(rawPayload?.updatedAt || docUpdatedAtMs || res?.updatedAt) || 0;
-                            if (activeMutations > 0 && incomingStamp <= lastLocalStamp) return;
+                            if (activeMutations > 0 && incomingStamp && incomingStamp <= lastLocalStamp) return;
 
-                            applyRemoteState(rawPayload);
+                            if (rawPayload && (Array.isArray(rawPayload.clinicsList) || Array.isArray(rawPayload.ticketsList))) {
+                                applyRemoteState({
+                                    ...rawPayload,
+                                    updatedAt: incomingStamp || Date.now()
+                                }, { force: isFirstSnapshotLoad });
+                            }
 
                             if (isFirstSnapshotLoad) {
                                 clinicsList.forEach(c => {
@@ -2769,11 +2849,42 @@
 
                             renderHeader();
                             renderActiveView();
-                        } catch (_) {}
+                        } catch (syncErr) {
+                            const errMsg = String(syncErr?.message || '');
+                            const isNotFound = errMsg.includes('404') || errMsg.toLowerCase().includes('not found');
+                            if (isNotFound) {
+                                isAppwriteReady = true;
+                                const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                                setSyncStatus(true, currentT.liveStatus);
+                                const cached = loadLocalCache();
+                                if (cached && (Array.isArray(cached.clinicsList) || Array.isArray(cached.ticketsList))) {
+                                    applyRemoteState(cached, { force: true });
+                                    renderHeader();
+                                    renderActiveView();
+                                    firestoreSaveFn(buildAppwritePayload(Number(cached.updatedAt) || Date.now())).catch(() => {});
+                                }
+                            } else {
+                                isAppwriteReady = false;
+                                const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                                setSyncStatus(false, currentT.offlineStatus);
+                            }
+                            isFirstSnapshotLoad = false;
+                        }
                     };
 
                     await syncOnce();
-                    setInterval(syncOnce, 2500);
+                    setInterval(syncOnce, 2000);
+
+                    if (typeof client.subscribe === 'function') {
+                        try {
+                            client.subscribe(
+                                `databases.${databaseId}.collections.${collectionId}.documents.${documentId}`,
+                                () => {
+                                    syncOnce();
+                                }
+                            );
+                        } catch (_) {}
+                    }
                 } catch (err) {
                     console.warn('تعذر الاتصال الفوري بـ Appwrite (العمل بالوضع المحلي الآمن):', err);
                     isAppwriteReady = false;
@@ -2785,6 +2896,10 @@
             window.addEventListener('DOMContentLoaded', () => {
                 updateClock();
                 setInterval(updateClock, 1000);
+                const cached = loadLocalCache();
+                if (cached) {
+                    applyRemoteState(cached, { force: true });
+                }
                 renderAll();
                 initAppwriteSync();
             });
