@@ -1,0 +1,2749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مستشفى الملك فيصل — نظام إدارة الطوابير</title>
+    <script>
+        (function () {
+            const css = `
+                *, *::before, *::after { box-sizing: border-box; }
+                body { margin: 0; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; min-height: 100vh; background: linear-gradient(160deg, #f0f9ff 0%, #ffffff 52%, #e0f2fe 100%); color: #0c4a6e; }
+                .hidden { display: none !important; }
+                .flex { display: flex; }
+                .grid { display: grid; }
+                .fixed { position: fixed; }
+                .relative { position: relative; }
+                .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+                .top-4 { top: 1rem; }
+                .left-4 { left: 1rem; }
+                .bottom-5 { bottom: 1.25rem; }
+                .left-5 { left: 1.25rem; }
+                .z-50 { z-index: 50; }
+                .mx-auto { margin-left: auto; margin-right: auto; }
+                .my-auto { margin-top: auto; margin-bottom: auto; }
+                .my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+                .my-3 { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+                .mt-0\.5 { margin-top: 0.125rem; }
+                .mt-1 { margin-top: 0.25rem; }
+                .mt-1\.5 { margin-top: 0.375rem; }
+                .mt-2 { margin-top: 0.5rem; }
+                .mt-3 { margin-top: 0.75rem; }
+                .mb-2 { margin-bottom: 0.5rem; }
+                .mb-5 { margin-bottom: 1.25rem; }
+                .p-3 { padding: 0.75rem; }
+                .p-4 { padding: 1rem; }
+                .p-5 { padding: 1.25rem; }
+                .p-6 { padding: 1.5rem; }
+                .px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+                .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+                .px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+                .px-4 { padding-left: 1rem; padding-right: 1rem; }
+                .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+                .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+                .px-7 { padding-left: 1.75rem; padding-right: 1.75rem; }
+                .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+                .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+                .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+                .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+                .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+                .py-3\.5 { padding-top: 0.875rem; padding-bottom: 0.875rem; }
+                .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+                .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+                .pt-1 { padding-top: 0.25rem; }
+                .pt-2 { padding-top: 0.5rem; }
+                .pt-3 { padding-top: 0.75rem; }
+                .pb-3 { padding-bottom: 0.75rem; }
+                .pb-4 { padding-bottom: 1rem; }
+                .gap-1\.5 { gap: 0.375rem; }
+                .gap-2 { gap: 0.5rem; }
+                .gap-2\.5 { gap: 0.625rem; }
+                .gap-3 { gap: 0.75rem; }
+                .gap-3\.5 { gap: 0.875rem; }
+                .gap-4 { gap: 1rem; }
+                .gap-5 { gap: 1.25rem; }
+                .gap-6 { gap: 1.5rem; }
+                .space-y-2 > * + * { margin-top: 0.5rem; }
+                .space-y-3 > * + * { margin-top: 0.75rem; }
+                .space-y-4 > * + * { margin-top: 1rem; }
+                .space-y-5 > * + * { margin-top: 1.25rem; }
+                .space-y-6 > * + * { margin-top: 1.5rem; }
+                .flex-1 { flex: 1 1 0%; }
+                .flex-col { flex-direction: column; }
+                .flex-wrap { flex-wrap: wrap; }
+                .items-center { align-items: center; }
+                .items-start { align-items: flex-start; }
+                .justify-center { justify-content: center; }
+                .justify-between { justify-content: space-between; }
+                .shrink-0 { flex-shrink: 0; }
+                .w-full { width: 100%; }
+                .w-2 { width: 0.5rem; }
+                .h-2 { height: 0.5rem; }
+                .w-10 { width: 2.5rem; }
+                .h-10 { height: 2.5rem; }
+                .w-11 { width: 2.75rem; }
+                .h-11 { height: 2.75rem; }
+                .w-14 { width: 3.5rem; }
+                .h-14 { height: 3.5rem; }
+                .max-w-sm { max-width: 24rem; }
+                .max-w-2xl { max-width: 42rem; }
+                .max-w-4xl { max-width: 56rem; }
+                .max-w-7xl { max-width: 80rem; }
+                .min-w-0 { min-width: 0; }
+                .min-w-\[160px\] { min-width: 160px; }
+                .h-full { height: 100%; }
+                .overflow-hidden { overflow: hidden; }
+                .overflow-y-auto { overflow-y: auto; }
+                .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .break-words { overflow-wrap: break-word; }
+                .text-center { text-align: center; }
+                .text-left { text-align: left; }
+                .text-right { text-align: right; }
+                .text-xs { font-size: 0.75rem; line-height: 1rem; }
+                .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+                .text-base { font-size: 1rem; line-height: 1.5rem; }
+                .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+                .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+                .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+                .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+                .text-5xl { font-size: 3rem; line-height: 1; }
+                .text-6xl { font-size: 3.75rem; line-height: 1; }
+                .text-9xl { font-size: 8rem; line-height: 1; }
+                .font-semibold { font-weight: 600; }
+                .font-bold { font-weight: 700; }
+                .font-extrabold { font-weight: 800; }
+                .font-black { font-weight: 900; }
+                .uppercase { text-transform: uppercase; }
+                .tracking-wider { letter-spacing: 0.05em; }
+                .leading-tight { line-height: 1.25; }
+                .leading-snug { line-height: 1.375; }
+                .leading-none { line-height: 1; }
+                .rounded-lg { border-radius: 0.5rem; }
+                .rounded-xl { border-radius: 0.75rem; }
+                .rounded-2xl { border-radius: 1rem; }
+                .rounded-3xl { border-radius: 1.5rem; }
+                .rounded-full { border-radius: 9999px; }
+                .border { border: 1px solid #bae6fd; }
+                .border-2 { border: 2px solid #7dd3fc; }
+                .border-dashed { border-style: dashed; }
+                .border-b { border-bottom: 1px solid #e0f2fe; }
+                .border-t { border-top: 1px solid #e0f2fe; }
+                .border-sky-100 { border-color: #e0f2fe; }
+                .border-sky-200 { border-color: #bae6fd; }
+                .border-sky-300 { border-color: #7dd3fc; }
+                .border-sky-500 { border-color: #0ea5e9; }
+                .border-emerald-200 { border-color: #a7f3d0; }
+                .border-amber-200 { border-color: #fde68a; }
+                .border-rose-200 { border-color: #fecdd3; }
+                .bg-white { background-color: #ffffff; }
+                .bg-white\/95 { background-color: rgba(255, 255, 255, 0.95); }
+                .bg-sky-50 { background-color: #f0f9ff; }
+                .bg-sky-50\/60 { background-color: rgba(240, 249, 255, 0.6); }
+                .bg-sky-50\/70 { background-color: rgba(240, 249, 255, 0.7); }
+                .bg-sky-50\/80 { background-color: rgba(240, 249, 255, 0.8); }
+                .bg-sky-100 { background-color: #e0f2fe; }
+                .bg-sky-100\/70 { background-color: rgba(224, 242, 254, 0.7); }
+                .bg-sky-600 { background-color: #0284c7; }
+                .bg-sky-700 { background-color: #0369a1; }
+                .bg-sky-950\/40 { background-color: rgba(8, 47, 73, 0.4); }
+                .bg-emerald-50 { background-color: #ecfdf5; }
+                .bg-emerald-500 { background-color: #10b981; }
+                .bg-amber-50 { background-color: #fffbeb; }
+                .bg-amber-500 { background-color: #f59e0b; }
+                .bg-rose-50 { background-color: #fff1f2; }
+                .bg-rose-500 { background-color: #f43f5e; }
+                .text-white { color: #ffffff; }
+                .text-sky-300 { color: #7dd3fc; }
+                .text-sky-400 { color: #38bdf8; }
+                .text-sky-500 { color: #0ea5e9; }
+                .text-sky-600 { color: #0284c7; }
+                .text-sky-700 { color: #0369a1; }
+                .text-sky-800 { color: #075985; }
+                .text-sky-900 { color: #0c4a6e; }
+                .text-sky-950 { color: #082f49; }
+                .text-emerald-400 { color: #34d399; }
+                .text-emerald-700 { color: #047857; }
+                .text-amber-800 { color: #92400e; }
+                .text-rose-400 { color: #fb7185; }
+                .text-rose-700 { color: #be123c; }
+                .shadow-sm { box-shadow: 0 1px 2px rgba(8, 47, 73, 0.06); }
+                .shadow-md { box-shadow: 0 4px 10px rgba(8, 47, 73, 0.08); }
+                .shadow-xl { box-shadow: 0 20px 25px -5px rgba(8, 47, 73, 0.12); }
+                .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(8, 47, 73, 0.25); }
+                .object-cover { object-fit: cover; }
+                .cursor-pointer { cursor: pointer; }
+                button, input, select { font-family: inherit; }
+                button { cursor: pointer; }
+                .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+                .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                @media (min-width: 640px) {
+                    .sm\:p-6 { padding: 1.5rem; }
+                    .sm\:p-7 { padding: 1.75rem; }
+                    .sm\:p-10 { padding: 2.5rem; }
+                    .sm\:w-56 { width: 14rem; }
+                    .sm\:w-auto { width: auto; }
+                    .sm\:col-span-2 { grid-column: span 2 / span 2; }
+                    .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                    .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+                    .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+                    .sm\:flex-nowrap { flex-wrap: nowrap; }
+                    .sm\:text-sm { font-size: 0.875rem; }
+                    .sm\:text-xl { font-size: 1.25rem; }
+                    .sm\:text-2xl { font-size: 1.5rem; }
+                    .sm\:text-3xl { font-size: 1.875rem; }
+                    .sm\:text-4xl { font-size: 2.25rem; }
+                    .sm\:text-8xl { font-size: 6rem; }
+                }
+                @media (min-width: 768px) {
+                    .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                    .md\:text-9xl { font-size: 8rem; }
+                }
+                @media (min-width: 1024px) {
+                    .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+                    .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+                    .lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+                }
+                @media (min-width: 1280px) {
+                    .xl\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+                    .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+                }
+            `;
+            const el = document.createElement('style');
+            el.id = 'local-fallback-utilities';
+            el.textContent = css;
+            document.head.appendChild(el);
+        })();
+    </script>
+    <script>
+        (function () {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.tailwindcss.com';
+            s.async = true;
+            s.onload = function () {
+                const fb = document.getElementById('local-fallback-utilities');
+                if (fb) fb.remove();
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" /></noscript>
+    <style>
+        body {
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* أنماط أشكال الشريط العلوي */
+        #main-navbar.navbar-top-capsule {
+            border-radius: 1.5rem;
+            margin: 0.75rem auto;
+            max-width: 1280px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(14px);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+        }
+
+        #main-navbar.navbar-centered-sym {
+            border-radius: 1.75rem;
+            margin: 0.75rem auto;
+            max-width: 1280px;
+            background: linear-gradient(90deg, #f8fafc 0%, #ffffff 50%, #f8fafc 100%);
+            border: 2px solid #cbd5e1;
+            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.08);
+        }
+
+        #main-navbar.navbar-centered-sym > div {
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
+        }
+
+        #main-navbar.navbar-centered-sym .nav-items-group {
+            justify-content: center;
+        }
+
+        #main-navbar.navbar-separated-cards {
+            background: transparent;
+            box-shadow: none;
+            border: none;
+            max-width: 1280px;
+            margin: 0.75rem auto;
+        }
+
+        #main-navbar.navbar-separated-cards .nav-card-box {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid #cbd5e1;
+            border-radius: 1.25rem;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+        }
+
+        #main-navbar.navbar-compact-bar {
+            border-radius: 0.875rem;
+            margin: 0.35rem auto;
+            max-width: 1320px;
+            padding-top: 0.45rem !important;
+            padding-bottom: 0.45rem !important;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+        }
+
+        #main-navbar.navbar-glass-floating {
+            border-radius: 2rem;
+            margin: 1rem auto;
+            max-width: 1280px;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 18px 38px -10px rgba(2, 132, 199, 0.16);
+        }
+
+        /* أنماط الواجهة المتنوعة بالألوان السماوية والأبيض */
+        body.theme-medical-blue,
+        body.theme-modern,
+        body.theme-medical-mint,
+        body.theme-sterile-white,
+        body.theme-royal-dark,
+        body.theme-sky-frosted,
+        body.theme-arctic-frame,
+        body.theme-sky-mist,
+        body.theme-pure-breeze,
+        body.theme-sky-frame-medium,
+        body.theme-sky-frame-sharp,
+        body.theme-sky-frame-soft,
+        body.theme-sky-frame-elevated {
+            --sky-bg-start: #f0f9ff;
+            --sky-bg-mid: #ffffff;
+            --sky-bg-end: #e0f2fe;
+            --sky-accent: #0284c7;
+            --sky-accent-hover: #0369a1;
+            --sky-surface: #ffffff;
+            --sky-surface-soft: #f0f9ff;
+            --sky-border: #38bdf8;
+            --sky-text: #0c4a6e;
+            --sky-card-radius: 1.25rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 4px 14px -2px rgba(2, 132, 199, 0.08);
+        }
+
+        body.theme-sky-frame-medium {
+            --sky-border: #0ea5e9;
+            --sky-card-radius: 1.5rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 8px 20px -4px rgba(2, 132, 199, 0.12);
+        }
+
+        body.theme-sky-frame-sharp {
+            --sky-border: #0284c7;
+            --sky-card-radius: 0.75rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 2px 8px rgba(2, 132, 199, 0.06);
+        }
+
+        body.theme-sky-frame-soft {
+            --sky-border: #7dd3fc;
+            --sky-card-radius: 2rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 10px 24px -6px rgba(14, 165, 233, 0.1);
+        }
+
+        body.theme-sky-frame-elevated {
+            --sky-border: #0369a1;
+            --sky-card-radius: 1.35rem;
+            --sky-border-width: 3px;
+            --sky-card-shadow: 0 14px 28px -6px rgba(3, 105, 161, 0.16);
+        }
+
+        body.theme-sky-double-frame {
+            --sky-bg-start: #f0f9ff;
+            --sky-bg-mid: #ffffff;
+            --sky-bg-end: #e0f2fe;
+            --sky-accent: #0284c7;
+            --sky-surface: #ffffff;
+            --sky-surface-soft: #f0f9ff;
+            --sky-border: #0284c7;
+            --sky-text: #0c4a6e;
+            --sky-card-radius: 1.35rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 0 0 3px #e0f2fe, 0 8px 20px -4px rgba(2, 132, 199, 0.14);
+        }
+
+        body.theme-sky-dashed-clean {
+            --sky-bg-start: #f7fcff;
+            --sky-bg-mid: #ffffff;
+            --sky-bg-end: #e6f6ff;
+            --sky-accent: #0ea5e9;
+            --sky-surface: #ffffff;
+            --sky-surface-soft: #f0f9ff;
+            --sky-border: #38bdf8;
+            --sky-text: #075985;
+            --sky-card-radius: 1.25rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 6px 16px -4px rgba(14, 165, 233, 0.1);
+        }
+
+        body.theme-sky-dashed-clean .bg-white,
+        body.theme-sky-dashed-clean .bg-white\/95 {
+            border-style: dashed !important;
+        }
+
+        body.theme-sky-top-accent {
+            --sky-bg-start: #e8f6ff;
+            --sky-bg-mid: #ffffff;
+            --sky-bg-end: #f0f9ff;
+            --sky-accent: #0284c7;
+            --sky-surface: #ffffff;
+            --sky-surface-soft: #f0f9ff;
+            --sky-border: #7dd3fc;
+            --sky-text: #0c4a6e;
+            --sky-card-radius: 1.25rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: inset 0 5px 0 0 #0284c7, 0 10px 22px -6px rgba(2, 132, 199, 0.14);
+        }
+
+        body.theme-sky-snow-bright {
+            --sky-bg-start: #ffffff;
+            --sky-bg-mid: #f5fbff;
+            --sky-bg-end: #e0f2fe;
+            --sky-accent: #0369a1;
+            --sky-surface: #ffffff;
+            --sky-surface-soft: #f0f9ff;
+            --sky-border: #38bdf8;
+            --sky-text: #082f49;
+            --sky-card-radius: 1.65rem;
+            --sky-border-width: 2px;
+            --sky-card-shadow: 0 8px 24px -6px rgba(3, 105, 161, 0.12);
+        }
+
+        body.theme-medical-blue,
+        body.theme-modern,
+        body.theme-medical-mint,
+        body.theme-sterile-white,
+        body.theme-royal-dark,
+        body.theme-sky-frosted,
+        body.theme-arctic-frame,
+        body.theme-sky-mist,
+        body.theme-pure-breeze,
+        body.theme-sky-frame-medium,
+        body.theme-sky-frame-sharp,
+        body.theme-sky-frame-soft,
+        body.theme-sky-frame-elevated {
+            background: linear-gradient(160deg, var(--sky-bg-start, #f0f9ff) 0%, var(--sky-bg-mid, #ffffff) 52%, var(--sky-bg-end, #e0f2fe) 100%) !important;
+            color: var(--sky-text, #0c4a6e) !important;
+        }
+
+        body.theme-sky-double-frame,
+        body.theme-sky-dashed-clean,
+        body.theme-sky-top-accent,
+        body.theme-sky-snow-bright {
+            background: linear-gradient(160deg, var(--sky-bg-start) 0%, var(--sky-bg-mid) 52%, var(--sky-bg-end) 100%) !important;
+            color: var(--sky-text) !important;
+        }
+
+        body.theme-medical-blue .bg-white,
+        body.theme-medical-blue .bg-white\/95,
+        body.theme-modern .bg-white,
+        body.theme-modern .bg-white\/95,
+        body.theme-medical-mint .bg-white,
+        body.theme-medical-mint .bg-white\/95,
+        body.theme-sterile-white .bg-white,
+        body.theme-sterile-white .bg-white\/95,
+        body.theme-royal-dark .bg-white,
+        body.theme-royal-dark .bg-white\/95,
+        body.theme-sky-frosted .bg-white,
+        body.theme-sky-frosted .bg-white\/95,
+        body.theme-arctic-frame .bg-white,
+        body.theme-arctic-frame .bg-white\/95,
+        body.theme-sky-mist .bg-white,
+        body.theme-sky-mist .bg-white\/95,
+        body.theme-pure-breeze .bg-white,
+        body.theme-pure-breeze .bg-white\/95,
+        body.theme-sky-frame-medium .bg-white,
+        body.theme-sky-frame-medium .bg-white\/95,
+        body.theme-sky-frame-sharp .bg-white,
+        body.theme-sky-frame-sharp .bg-white\/95,
+        body.theme-sky-frame-soft .bg-white,
+        body.theme-sky-frame-soft .bg-white\/95,
+        body.theme-sky-frame-elevated .bg-white,
+        body.theme-sky-frame-elevated .bg-white\/95 {
+            background-color: var(--sky-surface, #ffffff) !important;
+            border-color: var(--sky-border, #38bdf8) !important;
+            border-width: var(--sky-border-width, 2px);
+            border-radius: var(--sky-card-radius, 1.25rem);
+            box-shadow: var(--sky-card-shadow, 0 4px 14px -2px rgba(2, 132, 199, 0.08));
+        }
+
+        body.theme-sky-double-frame .bg-white,
+        body.theme-sky-double-frame .bg-white\/95,
+        body.theme-sky-dashed-clean .bg-white,
+        body.theme-sky-dashed-clean .bg-white\/95,
+        body.theme-sky-top-accent .bg-white,
+        body.theme-sky-top-accent .bg-white\/95,
+        body.theme-sky-snow-bright .bg-white,
+        body.theme-sky-snow-bright .bg-white\/95 {
+            background-color: var(--sky-surface) !important;
+            border-color: var(--sky-border) !important;
+            border-width: var(--sky-border-width);
+            border-radius: var(--sky-card-radius);
+            box-shadow: var(--sky-card-shadow);
+        }
+
+        body.theme-medical-blue .bg-sky-50,
+        body.theme-medical-blue .bg-sky-50\/70,
+        body.theme-medical-blue .bg-sky-50\/80,
+        body.theme-medical-mint .bg-sky-50,
+        body.theme-medical-mint .bg-sky-50\/70,
+        body.theme-medical-mint .bg-sky-50\/80,
+        body.theme-sterile-white .bg-sky-50,
+        body.theme-sterile-white .bg-sky-50\/70,
+        body.theme-sterile-white .bg-sky-50\/80,
+        body.theme-royal-dark .bg-sky-50,
+        body.theme-royal-dark .bg-sky-50\/70,
+        body.theme-royal-dark .bg-sky-50\/80,
+        body.theme-sky-frosted .bg-sky-50,
+        body.theme-sky-frosted .bg-sky-50\/70,
+        body.theme-sky-frosted .bg-sky-50\/80,
+        body.theme-arctic-frame .bg-sky-50,
+        body.theme-arctic-frame .bg-sky-50\/70,
+        body.theme-arctic-frame .bg-sky-50\/80,
+        body.theme-sky-mist .bg-sky-50,
+        body.theme-sky-mist .bg-sky-50\/70,
+        body.theme-sky-mist .bg-sky-50\/80,
+        body.theme-pure-breeze .bg-sky-50,
+        body.theme-pure-breeze .bg-sky-50\/70,
+        body.theme-pure-breeze .bg-sky-50\/80,
+        body.theme-sky-frame-medium .bg-sky-50,
+        body.theme-sky-frame-medium .bg-sky-50\/70,
+        body.theme-sky-frame-medium .bg-sky-50\/80,
+        body.theme-sky-frame-sharp .bg-sky-50,
+        body.theme-sky-frame-sharp .bg-sky-50\/70,
+        body.theme-sky-frame-sharp .bg-sky-50\/80,
+        body.theme-sky-frame-soft .bg-sky-50,
+        body.theme-sky-frame-soft .bg-sky-50\/70,
+        body.theme-sky-frame-soft .bg-sky-50\/80,
+        body.theme-sky-frame-elevated .bg-sky-50,
+        body.theme-sky-frame-elevated .bg-sky-50\/70,
+        body.theme-sky-frame-elevated .bg-sky-50\/80 {
+            background-color: var(--sky-surface-soft, #f0f9ff) !important;
+        }
+
+        body.theme-sky-double-frame .bg-sky-50,
+        body.theme-sky-double-frame .bg-sky-50\/70,
+        body.theme-sky-double-frame .bg-sky-50\/80,
+        body.theme-sky-dashed-clean .bg-sky-50,
+        body.theme-sky-dashed-clean .bg-sky-50\/70,
+        body.theme-sky-dashed-clean .bg-sky-50\/80,
+        body.theme-sky-top-accent .bg-sky-50,
+        body.theme-sky-top-accent .bg-sky-50\/70,
+        body.theme-sky-top-accent .bg-sky-50\/80,
+        body.theme-sky-snow-bright .bg-sky-50,
+        body.theme-sky-snow-bright .bg-sky-50\/70,
+        body.theme-sky-snow-bright .bg-sky-50\/80 {
+            background-color: var(--sky-surface-soft) !important;
+        }
+
+        body.theme-medical-blue #main-navbar.navbar-top-capsule,
+        body.theme-medical-blue #main-navbar.navbar-centered-sym,
+        body.theme-medical-blue #main-navbar.navbar-sidebar-rail,
+        body.theme-medical-blue #main-navbar.navbar-compact-bar,
+        body.theme-medical-blue #main-navbar.navbar-glass-floating,
+        body.theme-medical-blue #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-modern #main-navbar.navbar-top-capsule,
+        body.theme-modern #main-navbar.navbar-centered-sym,
+        body.theme-modern #main-navbar.navbar-sidebar-rail,
+        body.theme-modern #main-navbar.navbar-compact-bar,
+        body.theme-modern #main-navbar.navbar-glass-floating,
+        body.theme-modern #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-medical-mint #main-navbar.navbar-top-capsule,
+        body.theme-medical-mint #main-navbar.navbar-centered-sym,
+        body.theme-medical-mint #main-navbar.navbar-sidebar-rail,
+        body.theme-medical-mint #main-navbar.navbar-compact-bar,
+        body.theme-medical-mint #main-navbar.navbar-glass-floating,
+        body.theme-medical-mint #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sterile-white #main-navbar.navbar-top-capsule,
+        body.theme-sterile-white #main-navbar.navbar-centered-sym,
+        body.theme-sterile-white #main-navbar.navbar-sidebar-rail,
+        body.theme-sterile-white #main-navbar.navbar-compact-bar,
+        body.theme-sterile-white #main-navbar.navbar-glass-floating,
+        body.theme-sterile-white #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-royal-dark #main-navbar.navbar-top-capsule,
+        body.theme-royal-dark #main-navbar.navbar-centered-sym,
+        body.theme-royal-dark #main-navbar.navbar-sidebar-rail,
+        body.theme-royal-dark #main-navbar.navbar-compact-bar,
+        body.theme-royal-dark #main-navbar.navbar-glass-floating,
+        body.theme-royal-dark #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-frosted #main-navbar.navbar-top-capsule,
+        body.theme-sky-frosted #main-navbar.navbar-centered-sym,
+        body.theme-sky-frosted #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-frosted #main-navbar.navbar-compact-bar,
+        body.theme-sky-frosted #main-navbar.navbar-glass-floating,
+        body.theme-sky-frosted #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-arctic-frame #main-navbar.navbar-top-capsule,
+        body.theme-arctic-frame #main-navbar.navbar-centered-sym,
+        body.theme-arctic-frame #main-navbar.navbar-sidebar-rail,
+        body.theme-arctic-frame #main-navbar.navbar-compact-bar,
+        body.theme-arctic-frame #main-navbar.navbar-glass-floating,
+        body.theme-arctic-frame #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-mist #main-navbar.navbar-top-capsule,
+        body.theme-sky-mist #main-navbar.navbar-centered-sym,
+        body.theme-sky-mist #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-mist #main-navbar.navbar-compact-bar,
+        body.theme-sky-mist #main-navbar.navbar-glass-floating,
+        body.theme-sky-mist #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-pure-breeze #main-navbar.navbar-top-capsule,
+        body.theme-pure-breeze #main-navbar.navbar-centered-sym,
+        body.theme-pure-breeze #main-navbar.navbar-sidebar-rail,
+        body.theme-pure-breeze #main-navbar.navbar-compact-bar,
+        body.theme-pure-breeze #main-navbar.navbar-glass-floating,
+        body.theme-pure-breeze #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-frame-medium #main-navbar.navbar-top-capsule,
+        body.theme-sky-frame-medium #main-navbar.navbar-centered-sym,
+        body.theme-sky-frame-medium #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-frame-medium #main-navbar.navbar-compact-bar,
+        body.theme-sky-frame-medium #main-navbar.navbar-glass-floating,
+        body.theme-sky-frame-medium #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-frame-sharp #main-navbar.navbar-top-capsule,
+        body.theme-sky-frame-sharp #main-navbar.navbar-centered-sym,
+        body.theme-sky-frame-sharp #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-frame-sharp #main-navbar.navbar-compact-bar,
+        body.theme-sky-frame-sharp #main-navbar.navbar-glass-floating,
+        body.theme-sky-frame-sharp #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-frame-soft #main-navbar.navbar-top-capsule,
+        body.theme-sky-frame-soft #main-navbar.navbar-centered-sym,
+        body.theme-sky-frame-soft #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-frame-soft #main-navbar.navbar-compact-bar,
+        body.theme-sky-frame-soft #main-navbar.navbar-glass-floating,
+        body.theme-sky-frame-soft #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-frame-elevated #main-navbar.navbar-top-capsule,
+        body.theme-sky-frame-elevated #main-navbar.navbar-centered-sym,
+        body.theme-sky-frame-elevated #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-frame-elevated #main-navbar.navbar-compact-bar,
+        body.theme-sky-frame-elevated #main-navbar.navbar-glass-floating,
+        body.theme-sky-frame-elevated #main-navbar.navbar-separated-cards .nav-card-box {
+            background: var(--sky-surface, #ffffff);
+            color: var(--sky-text, #0c4a6e);
+            border-color: var(--sky-border, #38bdf8);
+        }
+
+        body.theme-sky-double-frame #main-navbar.navbar-top-capsule,
+        body.theme-sky-double-frame #main-navbar.navbar-centered-sym,
+        body.theme-sky-double-frame #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-double-frame #main-navbar.navbar-compact-bar,
+        body.theme-sky-double-frame #main-navbar.navbar-glass-floating,
+        body.theme-sky-double-frame #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-dashed-clean #main-navbar.navbar-top-capsule,
+        body.theme-sky-dashed-clean #main-navbar.navbar-centered-sym,
+        body.theme-sky-dashed-clean #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-dashed-clean #main-navbar.navbar-compact-bar,
+        body.theme-sky-dashed-clean #main-navbar.navbar-glass-floating,
+        body.theme-sky-dashed-clean #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-top-accent #main-navbar.navbar-top-capsule,
+        body.theme-sky-top-accent #main-navbar.navbar-centered-sym,
+        body.theme-sky-top-accent #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-top-accent #main-navbar.navbar-compact-bar,
+        body.theme-sky-top-accent #main-navbar.navbar-glass-floating,
+        body.theme-sky-top-accent #main-navbar.navbar-separated-cards .nav-card-box,
+        body.theme-sky-snow-bright #main-navbar.navbar-top-capsule,
+        body.theme-sky-snow-bright #main-navbar.navbar-centered-sym,
+        body.theme-sky-snow-bright #main-navbar.navbar-sidebar-rail,
+        body.theme-sky-snow-bright #main-navbar.navbar-compact-bar,
+        body.theme-sky-snow-bright #main-navbar.navbar-glass-floating,
+        body.theme-sky-snow-bright #main-navbar.navbar-separated-cards .nav-card-box {
+            background: var(--sky-surface);
+            color: var(--sky-text);
+            border-color: var(--sky-border);
+        }
+
+        body.theme-medical-blue #tab-reception.bg-sky-600,
+        body.theme-sky-frame-elevated #navbar-default-badge,
+        body.theme-sky-frame-elevated .bg-sky-600 {
+            background-color: var(--sky-accent, #0284c7) !important;
+            color: #ffffff !important;
+        }
+
+        body.theme-sky-double-frame #tab-reception.bg-sky-600,
+        body.theme-sky-double-frame #tab-control.bg-sky-600,
+        body.theme-sky-double-frame #tab-display.bg-sky-600,
+        body.theme-sky-double-frame #navbar-default-badge,
+        body.theme-sky-double-frame .bg-sky-600,
+        body.theme-sky-dashed-clean #tab-reception.bg-sky-600,
+        body.theme-sky-dashed-clean #tab-control.bg-sky-600,
+        body.theme-sky-dashed-clean #tab-display.bg-sky-600,
+        body.theme-sky-dashed-clean #navbar-default-badge,
+        body.theme-sky-dashed-clean .bg-sky-600,
+        body.theme-sky-top-accent #tab-reception.bg-sky-600,
+        body.theme-sky-top-accent #tab-control.bg-sky-600,
+        body.theme-sky-top-accent #tab-display.bg-sky-600,
+        body.theme-sky-top-accent #navbar-default-badge,
+        body.theme-sky-top-accent .bg-sky-600,
+        body.theme-sky-snow-bright #tab-reception.bg-sky-600,
+        body.theme-sky-snow-bright #tab-control.bg-sky-600,
+        body.theme-sky-snow-bright #tab-display.bg-sky-600,
+        body.theme-sky-snow-bright #navbar-default-badge,
+        body.theme-sky-snow-bright .bg-sky-600 {
+            background-color: var(--sky-accent) !important;
+            color: #ffffff !important;
+        }
+
+        /* وضع ملء الشاشة وإخفاء باقي عناصر الواجهة */
+        body.is-fullscreen-mode #main-navbar,
+        body.is-fullscreen-mode #toast-banner,
+        body.is-fullscreen-mode #clinic-settings-modal {
+            display: none !important;
+        }
+
+        body.is-fullscreen-mode #app-main-container {
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+            height: 100vh !important;
+            padding: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        body.is-fullscreen-mode #view-display,
+        body.is-fullscreen-mode #focused-clinic-card:not(.hidden) {
+            flex: 1 1 auto !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+        }
+
+        body.is-fullscreen-mode #focused-clinic-card:not(.hidden) {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+        }
+
+        body.is-fullscreen-mode #focused-clinic-card:not(.hidden) > div:last-child {
+            flex: 1 1 auto !important;
+        }
+
+        #exit-fullscreen-floating-btn {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease;
+            transform: translateY(-6px);
+        }
+
+        body.is-fullscreen-mode.cursor-active #exit-fullscreen-floating-btn {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #thermal-receipt-area, #thermal-receipt-area * {
+                visibility: visible !important;
+            }
+            #thermal-receipt-area {
+                position: fixed;
+                inset: 0;
+                width: 80mm;
+                margin: 0 auto;
+                padding: 8mm;
+                background: #fff;
+                color: #000;
+            }
+        }
+    </style>
+</head>
+<body class="theme-modern">
+    <button type="button" id="exit-fullscreen-floating-btn" onclick="toggleFullScreenMode(false)" title="خروج من ملء الشاشة" aria-label="خروج من ملء الشاشة" class="hidden fixed top-4 left-4 z-50 px-4 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-extrabold shadow-xl border border-sky-200 transition-all flex items-center gap-2">
+        <i class="fa-solid fa-compress"></i>
+        <span>خروج من ملء الشاشة</span>
+    </button>
+
+    <div id="toast-banner" class="fixed bottom-5 left-5 z-50 hidden max-w-sm rounded-2xl bg-sky-700 text-white px-4 py-3 text-sm font-bold shadow-xl border border-sky-300 flex items-center gap-2.5">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-text">تم تنفيذ العملية</span>
+    </div>
+
+    <header id="main-navbar" class="navbar-top-capsule px-4 py-3 transition-all">
+        <div class="w-full flex flex-wrap items-center justify-between gap-3">
+            <div class="nav-card-box flex items-center gap-3 px-3 py-1.5">
+                <img id="navbar-clinic-logo" src="" alt="شعار المركز" class="hidden w-11 h-11 rounded-xl object-cover border border-sky-200" />
+                <div id="navbar-default-badge" class="w-11 h-11 rounded-xl bg-sky-600 text-white flex items-center justify-center text-xl shadow-sm">
+                    <i class="fa-solid fa-hospital-user"></i>
+                </div>
+                <div>
+                    <h1 id="navbar-center-title" class="text-lg sm:text-xl font-black leading-tight">مستشفى الملك فيصل</h1>
+                    <div class="flex items-center gap-2 text-xs font-bold text-sky-600 mt-0.5">
+                        <span id="sync-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <span id="sync-status-text">جاري الاتصال بـ Firestore...</span>
+                        <span class="text-sky-300">•</span>
+                        <span id="live-clock" class="text-sky-700 font-semibold" dir="ltr">--:--</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-items-group nav-card-box flex flex-wrap items-center gap-2 px-2.5 py-1.5">
+                <button type="button" id="tab-reception" onclick="switchTab('reception')" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-sky-600 text-white shadow-sm">
+                    <i class="fa-solid fa-ticket"></i>
+                    <span>إصدار التذاكر</span>
+                </button>
+                <button type="button" id="tab-control" onclick="switchTab('control')" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 text-sky-900 hover:bg-sky-50">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>لوحة التحكم والإدارة</span>
+                </button>
+                <button type="button" id="tab-display" onclick="switchTab('display')" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 text-sky-900 hover:bg-sky-50">
+                    <i class="fa-solid fa-tv"></i>
+                    <span>شاشة العرض</span>
+                </button>
+                <button type="button" onclick="openStandaloneDisplay()" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100">
+                    <i class="fa-solid fa-up-right-from-square"></i>
+                    <span>شاشة عرض مستقلة</span>
+                </button>
+                <button type="button" id="toggle-voice-btn" onclick="toggleVoiceAnnouncement()" title="تفعيل / كتم النداء الصوتي" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100">
+                    <i id="voice-btn-icon" class="fa-solid fa-volume-high"></i>
+                    <span id="voice-btn-label">النداء الصوتي: مفعل</span>
+                </button>
+                <button type="button" id="toggle-fullscreen-btn" onclick="toggleFullScreenMode()" title="ملء الشاشة" aria-label="ملء الشاشة" class="px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100">
+                    <i id="fullscreen-btn-icon" class="fa-solid fa-expand"></i>
+                    <span>ملء الشاشة</span>
+                </button>
+                <button type="button" id="open-settings-gear-btn" onclick="toggleClinicSettingsModal(true)" title="إدارة العيادات والإعدادات" aria-label="إدارة العيادات والإعدادات" class="w-10 h-10 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center justify-center text-base transition-all shadow-sm">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <div id="clinic-settings-modal" onclick="handleSettingsBackdropClick(event)" class="fixed inset-0 z-50 hidden bg-sky-950/40 p-4 overflow-y-auto flex items-start sm:items-center justify-center">
+        <div class="bg-white rounded-3xl border border-sky-200 shadow-2xl w-full max-w-4xl p-5 sm:p-7 space-y-6 my-auto text-sky-950">
+            <div class="flex items-center justify-between gap-3 border-b border-sky-100 pb-4">
+                <div>
+                    <h3 class="text-xl font-black text-sky-950 flex items-center gap-2">
+                        <i class="fa-solid fa-gear text-sky-600"></i>
+                        <span>إدارة العيادات والإعدادات</span>
+                    </h3>
+                    <p class="text-sm text-sky-700 font-semibold mt-0.5">تخصيص شكل الشريط العلوي، الواجهة، شعار المركز، وإضافة عيادات جديدة</p>
+                </div>
+                <button type="button" onclick="toggleClinicSettingsModal(false)" title="إغلاق" aria-label="إغلاق" class="w-10 h-10 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center text-base transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-2">
+                    <label id="label-center-name" class="block text-xs font-extrabold text-sky-900">اسم المركز الطبي</label>
+                    <input type="text" id="center-name-input" oninput="updateCenterName(this.value)" class="w-full px-3.5 py-2 rounded-xl border border-sky-200 text-sm font-bold bg-white text-sky-950" />
+                </div>
+
+                <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-2">
+                    <label id="label-navbar-shape" class="block text-xs font-extrabold text-sky-900">شكل الشريط العلوي</label>
+                    <select id="navbar-shape-select" onchange="setNavbarShape(this.value)" class="w-full px-3.5 py-2 rounded-xl border border-sky-200 text-sm font-bold bg-white text-sky-950">
+                        <option value="top-capsule">كبسولة علوية</option>
+                        <option value="centered-sym">مركزي متناظر</option>
+                        <option value="separated-cards">بطاقات منفصلة</option>
+                        <option value="compact-bar">شريط مدمج سريع</option>
+                        <option value="glass-floating">زجاجي عائم</option>
+                    </select>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-2">
+                    <label id="label-theme-style" class="block text-xs font-extrabold text-sky-900">نمط الواجهة</label>
+                    <select id="theme-style-select" onchange="setInterfaceTheme(this.value)" class="w-full px-3.5 py-2 rounded-xl border border-sky-200 text-sm font-bold bg-white text-sky-950">
+                        <option value="sky-frame-sharp">إطار سماوي محدد أبيض (حواف حادة)</option>
+                        <option value="sky-frame-elevated">إطار سماوي محدد أبيض (إطار بارز)</option>
+                        <option value="sky-double-frame">إطار سماوي مزدوج وأبيض</option>
+                        <option value="sky-dashed-clean">إطار سماوي متقطع أنيق وأبيض</option>
+                        <option value="sky-top-accent">إطار سماوي علوي بارز وأبيض</option>
+                    </select>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 space-y-2">
+                    <label id="label-language-select" class="block text-xs font-extrabold text-sky-900">لغة النظام / Language</label>
+                    <select id="language-select" onchange="setLanguage(this.value)" class="w-full px-3.5 py-2 rounded-xl border border-sky-200 text-sm font-bold bg-white text-sky-950">
+                        <option value="ar">العربية (AR)</option>
+                        <option value="en">English (EN)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="logo-dropzone" ondragover="handleLogoDragOver(event)" ondragleave="handleLogoDragLeave(event)" ondrop="handleLogoDrop(event)" class="p-4 rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50/60 flex flex-wrap items-center justify-between gap-4 transition-all">
+                <div class="flex items-center gap-3">
+                    <img id="settings-logo-preview" src="" alt="معاينة الشعار" class="hidden w-14 h-14 rounded-2xl object-cover border border-sky-200 bg-white" />
+                    <div>
+                        <p class="text-sm font-black text-sky-950">صورة بجانب اسم المستشفى / المركز</p>
+                        <p class="text-xs text-sky-700 font-semibold">اختر صورة من جهازك أو اسحبها هنا لتظهر وتُحدّث في أي وقت</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="cursor-pointer px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-extrabold hover:bg-sky-700 transition-all">
+                        <span>اختيار صورة من الجهاز</span>
+                        <input type="file" id="logo-file-input" accept="image/*" onchange="handleLogoFileSelected(event)" class="hidden" />
+                    </label>
+                    <button type="button" onclick="clearCustomLogo()" class="px-3.5 py-2 rounded-xl bg-white border border-sky-200 text-sky-800 text-xs font-extrabold hover:bg-sky-50 transition-all">
+                        إزالة الصورة
+                    </button>
+                </div>
+            </div>
+
+            <form onsubmit="addNewClinic(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2">
+                <input type="text" id="new-clinic-name" required placeholder="اسم العيادة (مثال: عيادة الأسنان)" class="sm:col-span-2 px-4 py-2.5 rounded-xl border border-sky-200 text-sm font-bold text-sky-950 bg-white" />
+                <input type="text" id="new-clinic-prefix" required maxlength="3" placeholder="الرمز (مثال: D)" class="px-4 py-2.5 rounded-xl border border-sky-200 text-sm font-bold uppercase text-sky-950 bg-white" />
+                <button type="submit" class="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-extrabold hover:bg-sky-700 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>إضافة عيادة</span>
+                </button>
+            </form>
+
+            <div class="pt-3 border-t border-sky-100 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h4 id="admin-clinics-list-title" class="text-sm font-black text-sky-950 flex items-center gap-2">
+                        <i class="fa-solid fa-hospital text-sky-600"></i>
+                        <span>العيادات المسجلة</span>
+                    </h4>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="run-queue-test-btn" onclick="runQueueSystemTest()" class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-vial"></i>
+                            <span id="run-queue-test-btn-label">تشغيل اختبار الطوابير</span>
+                        </button>
+                        <span id="admin-clinics-count-badge" class="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-xs font-extrabold">0</span>
+                    </div>
+                </div>
+                <div id="admin-clinics-manage-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <main id="app-main-container" class="max-w-7xl mx-auto px-4 py-6 transition-all">
+        <section id="view-reception" class="space-y-6">
+            <div class="bg-white/95 rounded-3xl border border-sky-200 shadow-sm p-5 sm:p-6">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-5">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black text-sky-950">إصدار تذكرة انتظار فورية</h2>
+                        <p class="text-sm text-sky-700 font-semibold mt-0.5">اختر العيادة المطلوبة لإصدار رقم الدور وطباعة التذكرة</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                        <input type="text" id="patient-name-input" placeholder="اسم المراجع (اختياري)" class="flex-1 sm:w-56 px-4 py-2.5 rounded-xl border border-sky-200 text-sm font-bold text-sky-950 bg-white" />
+                        <button type="button" id="reception-reset-all-btn" onclick="resetAllQueues()" class="px-3.5 py-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>تصفير جميع الطوابير</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="reception-clinics-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            </div>
+
+            <div class="bg-white/95 rounded-3xl border border-sky-200 shadow-sm p-5 sm:p-6 space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100 pb-3">
+                    <div>
+                        <h3 class="text-lg font-black text-sky-950 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-sky-600"></i>
+                            <span>إحصائيات الطوابير اليوم</span>
+                        </h3>
+                        <p class="text-xs text-sky-700 font-semibold mt-0.5">ملخص شامل لحركة المراجعين والعيادات والانتظار</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-xs font-extrabold">تحديث فوري</span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+                    <div class="p-4 rounded-2xl bg-sky-50 border border-sky-200">
+                        <p class="text-xs font-extrabold text-sky-700">إجمالي التذاكر الصادرة</p>
+                        <p id="stat-total-tickets" class="text-2xl sm:text-3xl font-black text-sky-950 mt-1">0</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200">
+                        <p class="text-xs font-extrabold text-sky-700">قيد الانتظار</p>
+                        <p id="stat-waiting-tickets" class="text-2xl sm:text-3xl font-black text-sky-950 mt-1">0</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-sky-100/70 border border-sky-200">
+                        <p class="text-xs font-extrabold text-sky-800">تم استدعاؤهم حالياً</p>
+                        <p id="stat-called-tickets" class="text-2xl sm:text-3xl font-black text-sky-950 mt-1">0</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-sky-50 border border-sky-200">
+                        <p class="text-xs font-extrabold text-sky-700">مكتملة / منتهية</p>
+                        <p id="stat-completed-tickets" class="text-2xl sm:text-3xl font-black text-sky-950 mt-1">0</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-sky-50/80 border border-sky-200">
+                        <p class="text-xs font-extrabold text-sky-700">عدد العيادات النشطة</p>
+                        <p id="stat-active-clinics" class="text-2xl sm:text-3xl font-black text-sky-950 mt-1">0</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-control" class="hidden space-y-6">
+            <div class="bg-white/95 rounded-3xl border border-sky-200 shadow-sm p-4 sm:p-5 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-black text-sky-950 flex items-center gap-2">
+                            <i class="fa-solid fa-stethoscope text-sky-600"></i>
+                            <span>لوحات التحكم المستقلة للعيادات</span>
+                        </h2>
+                        <p class="text-xs sm:text-sm text-sky-700 font-semibold">اختر عيادة لعرض لوحة تحكم مستقلة خاصة بها أو عد لعرض جميع العيادات</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="clinic-control-selector" onchange="selectIndependentClinicDashboard(this.value)" class="px-3.5 py-2 rounded-xl border border-sky-200 text-sm font-extrabold text-sky-950 bg-white">
+                            <option value="">جميع العيادات</option>
+                        </select>
+                        <button type="button" id="exit-independent-clinic-btn" onclick="selectIndependentClinicDashboard('')" class="hidden px-4 py-2 rounded-xl bg-sky-600 text-white text-xs sm:text-sm font-extrabold hover:bg-sky-700 transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-border-all"></i>
+                            <span id="exit-independent-clinic-btn-label">عرض جميع العيادات</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="independent-clinic-pills" class="flex flex-wrap items-center gap-2 pt-1"></div>
+            </div>
+
+            <div id="control-clinics-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+        </section>
+
+        <section id="view-display" class="hidden space-y-6">
+            <div id="focused-clinic-card" class="hidden bg-white/95 rounded-3xl border border-sky-200 shadow-xl p-6 sm:p-10 relative overflow-hidden">
+                <div class="flex flex-col items-center justify-center text-center py-8 space-y-6 relative z-10 flex-1">
+                    <h2 id="focused-clinic-name" style="margin-bottom: 4cm;" class="text-6xl sm:text-8xl md:text-9xl font-black text-sky-950 leading-tight">عيادة الباطنية</h2>
+                    <span class="px-6 py-2 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-lg sm:text-2xl font-extrabold">الرقم الحالي المستدعى</span>
+                    <div id="focused-clinic-ticket" class="text-9xl sm:text-[13rem] md:text-[16rem] font-black tracking-wider text-sky-600 leading-none" dir="ltr">---</div>
+                    <p id="focused-clinic-patient" class="text-5xl sm:text-7xl md:text-8xl font-black text-sky-900 leading-snug"></p>
+                </div>
+            </div>
+
+            <div id="all-clinics-display-wrapper" class="bg-white/95 rounded-3xl border border-sky-200 shadow-sm p-5 sm:p-6 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 pb-4">
+                    <h2 class="text-xl sm:text-2xl font-black text-sky-950 flex items-center gap-2">
+                        <i class="fa-solid fa-display text-sky-600"></i>
+                        <span>قائمة العيادات والأرقام الحالية</span>
+                    </h2>
+                </div>
+
+                <div id="display-clinics-list" class="space-y-3"></div>
+            </div>
+        </section>
+    </main>
+
+    <div id="thermal-receipt-area" class="hidden text-center">
+        <h2 id="receipt-center-name" class="text-base font-black">مستشفى الملك فيصل</h2>
+        <p id="receipt-clinic-name" class="text-sm font-bold mt-1"></p>
+        <div id="receipt-ticket-number" class="text-3xl font-black my-3" dir="ltr"></div>
+        <p id="receipt-patient-name" class="text-xs font-bold"></p>
+        <p id="receipt-time" class="text-xs mt-2"></p>
+    </div>
+
+    <script>
+        (function () {
+            const SKY_STYLE = {
+                border: 'border-sky-200',
+                hover: 'hover:border-sky-400 hover:bg-sky-50/70',
+                badge: 'bg-sky-600 text-white',
+                bg: 'bg-sky-50'
+            };
+
+            const COLOR_STYLES = {
+                sky: SKY_STYLE,
+                emerald: SKY_STYLE,
+                indigo: SKY_STYLE,
+                amber: SKY_STYLE,
+                rose: SKY_STYLE
+            };
+
+            const COLOR_KEYS = ['sky'];
+
+            const DEFAULT_CLINICS = [
+                { id: 'c-1', name: 'عيادة الباطنية', nameEn: 'Internal Medicine Clinic', prefix: 'A', color: 'sky', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' },
+                { id: 'c-2', name: 'عيادة العظام', nameEn: 'Orthopedics Clinic', prefix: 'B', color: 'indigo', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' },
+                { id: 'c-3', name: 'عيادة الأطفال', nameEn: 'Pediatrics Clinic', prefix: 'C', color: 'emerald', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' },
+                { id: 'c-4', name: 'عيادة العيون', nameEn: 'Ophthalmology Clinic', prefix: 'D', color: 'amber', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' },
+                { id: 'c-5', name: 'عيادة الأنف والأذن والحنجرة', nameEn: 'ENT Clinic', prefix: 'E', color: 'rose', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' },
+                { id: 'c-6', name: 'عيادة الجراحة', nameEn: 'Surgery Clinic', prefix: 'F', color: 'indigo', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' },
+                { id: 'c-7', name: 'عيادة الجلدية', nameEn: 'Dermatology Clinic', prefix: 'G', color: 'emerald', lastNumber: 0, currentTicketNumber: '', currentPatientName: '' }
+            ];
+
+            const CLINIC_SOUND_MAP = {
+                'c-1': './sounds/clinics/c-1.mp3',
+                'c-2': './sounds/clinics/c-2.mp3',
+                'c-3': './sounds/clinics/c-3.mp3',
+                'c-4': './sounds/clinics/c-4.mp3',
+                'c-5': './sounds/clinics/c-5.mp3',
+                'c-6': './sounds/clinics/c-6.mp3',
+                'c-7': './sounds/clinics/c-7.mp3'
+            };
+
+            const UI_TEXTS = {
+                ar: {
+                    pageTitle: 'مستشفى الملك فيصل — نظام إدارة الطوابير',
+                    defaultCenterName: 'مستشفى الملك فيصل',
+                    liveStatus: 'متصل بـ Firestore',
+                    offlineStatus: 'وضع محلي (بانتظار الاتصال)',
+                    tabReception: 'إصدار التذاكر',
+                    tabControl: 'لوحة التحكم والإدارة',
+                    tabDisplay: 'شاشة العرض',
+                    standaloneDisplay: 'شاشة عرض مستقلة',
+                    voiceOn: 'النداء الصوتي: مفعل',
+                    voiceOff: 'النداء الصوتي: مكتوم',
+                    fullscreen: 'ملء الشاشة',
+                    exitFullscreen: 'خروج من ملء الشاشة',
+                    settingsTitle: 'إدارة العيادات والإعدادات',
+                    settingsSubtitle: 'تخصيص شكل الشريط العلوي، الواجهة، شعار المركز، وإضافة عيادات جديدة',
+                    centerNameLabel: 'اسم المركز الطبي',
+                    navbarShapeLabel: 'شكل الشريط العلوي',
+                    themeStyleLabel: 'نمط الواجهة',
+                    languageLabel: 'لغة النظام / Language',
+                    logoTitle: 'صورة بجانب اسم المستشفى / المركز',
+                    logoSubtitle: 'اختر صورة من جهازك أو اسحبها هنا لتظهر وتُحدّث في أي وقت',
+                    chooseImage: 'اختيار صورة من الجهاز',
+                    removeImage: 'إزالة الصورة',
+                    newClinicNamePlaceholder: 'اسم العيادة (مثال: عيادة الأسنان)',
+                    newClinicPrefixPlaceholder: 'الرمز (مثال: D)',
+                    addClinicBtn: 'إضافة عيادة',
+                    receptionTitle: 'إصدار تذكرة انتظار فورية',
+                    receptionSubtitle: 'اختر العيادة المطلوبة لإصدار رقم الدور وطباعة التذكرة',
+                    patientNamePlaceholder: 'اسم المراجع (اختياري)',
+                    waitingLabel: 'المنتظرون',
+                    currentLabel: 'الحالي',
+                    noneLabel: 'لا يوجد',
+                    issuePrintBtn: 'إصدار وطباعة تذكرة',
+                    statsTitle: 'إحصائيات الطوابير اليوم',
+                    statsSubtitle: 'ملخص شامل لحركة المراجعين والعيادات والانتظار',
+                    liveBadge: 'تحديث فوري',
+                    statTotal: 'إجمالي التذاكر الصادرة',
+                    statWaiting: 'قيد الانتظار',
+                    statCalled: 'تم استدعاؤهم حالياً',
+                    statCompleted: 'مكتملة / منتهية',
+                    statActiveClinics: 'عدد العيادات النشطة',
+                    independentTitle: 'لوحات التحكم المستقلة للعيادات',
+                    independentSubtitle: 'اختر عيادة لعرض لوحة تحكم مستقلة خاصة بها أو عد لعرض جميع العيادات',
+                    allClinicsOption: 'جميع العيادات',
+                    showAllClinicsBtn: 'عرض جميع العيادات',
+                    resetQueueBtn: 'تصفير',
+                    resetAllQueuesBtn: 'تصفير جميع الطوابير',
+                    currentPatientLabel: 'المراجع الحالي',
+                    noCurrentPatient: 'لا يوجد مراجع حالياً',
+                    callNextBtn: 'استدعاء التالي',
+                    completeBtn: 'إنهاء الدور',
+                    recallBtn: 'إعادة النداء الصوتي',
+                    waitingListLabel: 'قائمة الانتظار',
+                    noWaiting: 'لا يوجد منتظرون',
+                    adminClinicsTitle: 'العيادات المسجلة',
+                    deleteClinicBtn: 'حذف',
+                    displayListTitle: 'قائمة العيادات والأرقام الحالية',
+                    availableWaitingText: 'متاح / بانتظار المراجع التالي',
+                    focusedCurrentLabel: 'الرقم الحالي المستدعى',
+                    receiptPatientPrefix: 'المراجع:',
+                    receiptTimePrefix: 'الوقت:'
+                },
+                en: {
+                    pageTitle: 'King Faisal Hospital — Queue Management System',
+                    defaultCenterName: 'King Faisal Hospital',
+                    liveStatus: 'Connected to Firestore',
+                    offlineStatus: 'Local Mode (Awaiting Network)',
+                    tabReception: 'Issue Tickets',
+                    tabControl: 'Control & Admin',
+                    tabDisplay: 'Display Screen',
+                    standaloneDisplay: 'Standalone Display',
+                    voiceOn: 'Voice: ON',
+                    voiceOff: 'Voice: OFF',
+                    fullscreen: 'Full Screen',
+                    exitFullscreen: 'Exit Full Screen',
+                    settingsTitle: 'Clinics & Settings Admin',
+                    settingsSubtitle: 'Customize header style, theme, hospital logo, and add new clinics',
+                    centerNameLabel: 'Medical Center Name',
+                    navbarShapeLabel: 'Navbar Style',
+                    themeStyleLabel: 'Interface Theme',
+                    languageLabel: 'System Language',
+                    logoTitle: 'Image Next to Hospital / Center Name',
+                    logoSubtitle: 'Choose an image from your device or drag and drop it here',
+                    chooseImage: 'Choose Image',
+                    removeImage: 'Remove Image',
+                    newClinicNamePlaceholder: 'Clinic Name (e.g. Dental Clinic)',
+                    newClinicPrefixPlaceholder: 'Prefix (e.g. D)',
+                    addClinicBtn: 'Add Clinic',
+                    receptionTitle: 'Instant Queue Ticket Issuance',
+                    receptionSubtitle: 'Select a clinic to issue a queue number and print the ticket',
+                    patientNamePlaceholder: 'Patient Name (Optional)',
+                    waitingLabel: 'Waiting',
+                    currentLabel: 'Current',
+                    noneLabel: 'None',
+                    issuePrintBtn: 'Issue & Print Ticket',
+                    statsTitle: 'Today’s Queue Statistics',
+                    statsSubtitle: 'Summary of patient flow, clinics, and waiting queue',
+                    liveBadge: 'Live Update',
+                    statTotal: 'Total Issued Tickets',
+                    statWaiting: 'Waiting',
+                    statCalled: 'Currently Called',
+                    statCompleted: 'Completed',
+                    statActiveClinics: 'Active Clinics',
+                    independentTitle: 'Independent Clinic Control Panels',
+                    independentSubtitle: 'Select a clinic for its own control panel or view all clinics',
+                    allClinicsOption: 'All Clinics',
+                    showAllClinicsBtn: 'Show All Clinics',
+                    resetQueueBtn: 'Reset',
+                    resetAllQueuesBtn: 'Reset All Queues',
+                    currentPatientLabel: 'Current Patient',
+                    noCurrentPatient: 'No current patient',
+                    callNextBtn: 'Call Next',
+                    completeBtn: 'Complete',
+                    recallBtn: 'Recall Voice',
+                    waitingListLabel: 'Waiting Queue',
+                    noWaiting: 'No waiting patients',
+                    adminClinicsTitle: 'Registered Clinics',
+                    deleteClinicBtn: 'Delete',
+                    displayListTitle: 'Clinics & Current Numbers',
+                    availableWaitingText: 'Available / Waiting for Next Patient',
+                    focusedCurrentLabel: 'Currently Called Number',
+                    receiptPatientPrefix: 'Patient:',
+                    receiptTimePrefix: 'Time:'
+                }
+            };
+
+            const ALLOWED_THEMES = [
+                'sky-frame-sharp',
+                'sky-frame-elevated',
+                'sky-double-frame',
+                'sky-dashed-clean',
+                'sky-top-accent'
+            ];
+
+            function mergeDefaultClinics(rawClinics) {
+                const base = Array.isArray(rawClinics) && rawClinics.length > 0
+                    ? rawClinics.map(c => ({ ...c }))
+                    : DEFAULT_CLINICS.map(c => ({ ...c }));
+
+                DEFAULT_CLINICS.forEach(defClinic => {
+                    const existing = base.find(c => c.id === defClinic.id || c.name === defClinic.name);
+                    if (!existing) {
+                        base.push({ ...defClinic });
+                    } else if (!existing.nameEn && defClinic.nameEn) {
+                        existing.nameEn = defClinic.nameEn;
+                    }
+                });
+
+                return base;
+            }
+
+            let clinicsList = DEFAULT_CLINICS.map(c => ({ ...c }));
+            let ticketsList = [];
+            let centerName = 'مستشفى الملك فيصل';
+            let customLogoDataUrl = '';
+            let navbarShape = 'top-capsule';
+            let interfaceTheme = 'sky-frame-sharp';
+            let currentLanguage = 'ar';
+            let currentTab = 'reception';
+            let focusedDisplayClinicId = '';
+            let isFirestoreReady = false;
+            let activeMutations = 0;
+            let lastLocalStamp = 0;
+            let lastRemoteUpdatedAt = 0;
+            let centerNameSaveTimer = null;
+            let firestoreSaveFn = null;
+            window.focusedClinicControlId = '';
+
+            let isVoiceEnabled = true;
+            let lastAnnouncedMap = {};
+            let isFirstSnapshotLoad = true;
+            const speechQueue = [];
+            let isSpeakingNow = false;
+            let currentAudioElement = null;
+
+            function stopCurrentNeuralAudio() {
+                speechQueue.length = 0;
+                isSpeakingNow = false;
+                if (currentAudioElement) {
+                    try {
+                        currentAudioElement.pause();
+                        currentAudioElement.currentTime = 0;
+                    } catch (_) {}
+                    currentAudioElement = null;
+                }
+            }
+
+            function updateVoiceButtonUi() {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                const btn = document.getElementById('toggle-voice-btn');
+                const icon = document.getElementById('voice-btn-icon');
+                const label = document.getElementById('voice-btn-label');
+                if (!btn || !icon || !label) return;
+
+                if (isVoiceEnabled) {
+                    btn.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100';
+                    icon.className = 'fa-solid fa-volume-high';
+                    label.textContent = t.voiceOn;
+                } else {
+                    btn.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100';
+                    icon.className = 'fa-solid fa-volume-xmark';
+                    label.textContent = t.voiceOff;
+                }
+            }
+
+            function toggleVoiceAnnouncement() {
+                isVoiceEnabled = !isVoiceEnabled;
+                updateVoiceButtonUi();
+                if (isVoiceEnabled) {
+                    playHospitalChime();
+                } else {
+                    stopCurrentNeuralAudio();
+                }
+            }
+
+            function playHospitalChime() {
+                return new Promise((resolve) => {
+                    try {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (!AudioCtx) return resolve();
+                        const ctx = new AudioCtx();
+                        const notes = [659.25, 523.25];
+                        notes.forEach((freq, idx) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.28);
+                            gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.28);
+                            gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + idx * 0.28 + 0.04);
+                            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.28 + 0.55);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(ctx.currentTime + idx * 0.28);
+                            osc.stop(ctx.currentTime + idx * 0.28 + 0.58);
+                        });
+                        setTimeout(() => {
+                            ctx.close().catch(() => {});
+                            resolve();
+                        }, 750);
+                    } catch (_) {
+                        resolve();
+                    }
+                });
+            }
+
+            function playAudioFile(src) {
+                return new Promise((resolve) => {
+                    if (!isVoiceEnabled || !src) return resolve();
+                    try {
+                        const audio = new Audio(src);
+                        audio.preload = 'auto';
+                        currentAudioElement = audio;
+
+                        const done = () => {
+                            if (currentAudioElement === audio) {
+                                currentAudioElement = null;
+                            }
+                            resolve();
+                        };
+
+                        audio.onended = done;
+                        audio.onerror = done;
+
+                        audio.play().catch(done);
+                    } catch (_) {
+                        resolve();
+                    }
+                });
+            }
+
+            function buildNumberSoundTracks(numValue) {
+                const n = Number(numValue);
+                if (!Number.isFinite(n) || n < 1 || n > 100) {
+                    return [`./sounds/numbers/${numValue}.mp3`];
+                }
+
+                if (n <= 19 || n % 10 === 0) {
+                    return [`./sounds/numbers/${n}.mp3`];
+                }
+
+                const ones = n % 10;
+                const tens = Math.floor(n / 10) * 10;
+                return [
+                    `./sounds/numbers/${ones}.mp3`,
+                    './sounds/waw.mp3',
+                    `./sounds/numbers/${tens}.mp3`
+                ];
+            }
+
+            function buildClinicAnnouncementTracks(clinic) {
+                const ticketNumber = String(clinic.currentTicketNumber || '').trim();
+                const clinicId = String(clinic.id || '').trim();
+                const tracks = ['./sounds/ticket.mp3'];
+
+                const match = ticketNumber.match(/^([A-Za-z]+)[-\s]?(\d+)$/);
+                const prefix = match ? match[1].toUpperCase() : (clinic.prefix ? String(clinic.prefix).toUpperCase() : '');
+                const numberPart = match ? match[2] : ticketNumber;
+
+                if (prefix) {
+                    tracks.push(`./sounds/${prefix}.mp3`);
+                }
+
+                if (numberPart) {
+                    tracks.push(...buildNumberSoundTracks(numberPart));
+                }
+
+                tracks.push('./sounds/go-to.mp3');
+
+                if (clinicId) {
+                    tracks.push(CLINIC_SOUND_MAP[clinicId] || `./sounds/clinics/${clinicId}.mp3`);
+                }
+
+                return tracks;
+            }
+
+            function enqueueClinicAnnouncement(clinic) {
+                if (!isVoiceEnabled || !clinic || !clinic.currentTicketNumber) return;
+                const ticketNumber = String(clinic.currentTicketNumber).trim();
+                const clinicId = String(clinic.id || '').trim();
+                if (!ticketNumber || !clinicId) return;
+
+                speechQueue.push({
+                    clinicId,
+                    ticketNumber,
+                    tracks: buildClinicAnnouncementTracks(clinic)
+                });
+                processSpeechQueue();
+            }
+
+            async function processSpeechQueue() {
+                if (!isVoiceEnabled || isSpeakingNow || speechQueue.length === 0) return;
+
+                isSpeakingNow = true;
+                const item = speechQueue.shift();
+
+                try {
+                    await playHospitalChime();
+                    if (!isVoiceEnabled) return;
+
+                    const tracks = Array.isArray(item.tracks) ? item.tracks : [];
+                    for (const src of tracks) {
+                        if (!isVoiceEnabled) return;
+                        await playAudioFile(src);
+                    }
+                } finally {
+                    isSpeakingNow = false;
+                    if (isVoiceEnabled && speechQueue.length > 0) {
+                        setTimeout(processSpeechQueue, 300);
+                    }
+                }
+            }
+
+            function recallCurrentPatient(clinicId) {
+                const clinic = clinicsList.find(c => c.id === clinicId);
+                if (!clinic || !clinic.currentTicketNumber) {
+                    showToast(currentLanguage === 'en' ? 'No active ticket to recall' : 'لا يوجد مراجع حالي لإعادة ندائه', true);
+                    return;
+                }
+                enqueueClinicAnnouncement(clinic);
+                showToast(currentLanguage === 'en' ? `Recalling ${clinic.currentTicketNumber}` : `جاري إعادة النداء للتذكرة ${clinic.currentTicketNumber}`);
+            }
+
+            function cloneSnapshot() {
+                return {
+                    clinicsList: clinicsList.map(c => ({ ...c })),
+                    ticketsList: ticketsList.map(t => ({ ...t })),
+                    centerName,
+                    customLogoDataUrl,
+                    navbarShape,
+                    interfaceTheme,
+                    currentLanguage,
+                    lastRemoteUpdatedAt
+                };
+            }
+
+            function restoreSnapshot(snap) {
+                clinicsList = snap.clinicsList;
+                ticketsList = snap.ticketsList;
+                centerName = snap.centerName;
+                customLogoDataUrl = snap.customLogoDataUrl;
+                navbarShape = snap.navbarShape;
+                interfaceTheme = snap.interfaceTheme;
+                currentLanguage = snap.currentLanguage;
+                lastRemoteUpdatedAt = snap.lastRemoteUpdatedAt;
+                renderActiveView();
+            }
+
+            function setSyncStatus(connected, labelText) {
+                const dot = document.getElementById('sync-status-dot');
+                const text = document.getElementById('sync-status-text');
+                if (dot) {
+                    dot.className = `w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500'}`;
+                }
+                if (text && labelText) {
+                    text.textContent = labelText;
+                }
+            }
+
+            function buildFirestorePayload(stamp = Date.now()) {
+                lastLocalStamp = stamp;
+                lastRemoteUpdatedAt = stamp;
+                return {
+                    clinicsList,
+                    ticketsList,
+                    centerName,
+                    customLogoDataUrl,
+                    navbarShape,
+                    interfaceTheme,
+                    currentLanguage,
+                    updatedAt: stamp
+                };
+            }
+
+            function applyRemoteState(data) {
+                if (!data || typeof data !== 'object') return;
+                const incomingStamp = Number(data.updatedAt) || 0;
+                if (incomingStamp && incomingStamp <= lastLocalStamp) return;
+                if (incomingStamp && incomingStamp < lastRemoteUpdatedAt) return;
+                if (incomingStamp) lastRemoteUpdatedAt = incomingStamp;
+
+                clinicsList = mergeDefaultClinics(data.clinicsList);
+                ticketsList = Array.isArray(data.ticketsList) ? data.ticketsList : [];
+                if (data.centerName) centerName = data.centerName;
+                if (typeof data.customLogoDataUrl === 'string') customLogoDataUrl = data.customLogoDataUrl;
+                if (data.navbarShape) navbarShape = data.navbarShape === 'gradient-banner' ? 'top-capsule' : data.navbarShape;
+                if (data.interfaceTheme && ALLOWED_THEMES.includes(data.interfaceTheme)) {
+                    interfaceTheme = data.interfaceTheme;
+                }
+                if (data.currentLanguage === 'en' || data.currentLanguage === 'ar') {
+                    currentLanguage = data.currentLanguage;
+                }
+            }
+
+            function renderActiveView() {
+                if (currentTab === 'reception') {
+                    renderReception();
+                } else if (currentTab === 'control') {
+                    renderControlPanel();
+                } else if (currentTab === 'display') {
+                    renderDisplayScreen();
+                }
+
+                const settingsModal = document.getElementById('clinic-settings-modal');
+                if (settingsModal && !settingsModal.classList.contains('hidden')) {
+                    renderAdminClinicsList();
+                }
+            }
+
+            function syncMutationWithFirestore(mutateLocalFn, rollbackSnap, options = {}) {
+                const stamp = Date.now();
+                activeMutations += 1;
+                mutateLocalFn();
+
+                if (options.renderHeaderToo) {
+                    renderHeader();
+                }
+                renderActiveView();
+
+                const payload = buildFirestorePayload(stamp);
+                if (typeof firestoreSaveFn === 'function') {
+                    firestoreSaveFn(payload)
+                        .catch((err) => {
+                            console.warn('تعذر مزامنة التغيير مع Firestore:', err);
+                        })
+                        .finally(() => {
+                            activeMutations = Math.max(0, activeMutations - 1);
+                        });
+                } else {
+                    activeMutations = Math.max(0, activeMutations - 1);
+                }
+            }
+
+            function getClinicDisplayName(clinic) {
+                if (!clinic) return '';
+                if (currentLanguage === 'en') {
+                    return clinic.nameEn || clinic.name;
+                }
+                return clinic.name;
+            }
+
+            function showToast(message, isError = false) {
+                const banner = document.getElementById('toast-banner');
+                const textEl = document.getElementById('toast-text');
+                const iconEl = document.getElementById('toast-icon');
+                if (!banner || !textEl || !iconEl) return;
+
+                textEl.textContent = message;
+                iconEl.className = isError ? 'fa-solid fa-circle-exclamation text-rose-400' : 'fa-solid fa-circle-check text-emerald-400';
+                banner.classList.remove('hidden');
+
+                clearTimeout(window.__toastTimer);
+                window.__toastTimer = setTimeout(() => {
+                    banner.classList.add('hidden');
+                }, 2200);
+            }
+
+            function updateClock() {
+                const clockEl = document.getElementById('live-clock');
+                if (!clockEl) return;
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            function switchTab(tabName, options = {}) {
+                currentTab = tabName;
+                toggleClinicSettingsModal(false);
+
+                ['reception', 'control', 'display'].forEach(t => {
+                    const view = document.getElementById(`view-${t}`);
+                    const btn = document.getElementById(`tab-${t}`);
+                    if (view) view.classList.toggle('hidden', t !== tabName);
+                    if (btn) {
+                        if (t === tabName) {
+                            btn.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 bg-sky-600 text-white shadow-sm';
+                        } else {
+                            btn.className = 'px-4 py-2 rounded-xl text-sm font-extrabold transition-all flex items-center gap-2 text-sky-900 hover:bg-sky-50';
+                        }
+                    }
+                });
+
+                if (tabName === 'display' && !options.keepFocus) {
+                    exitFocusedClinicDisplay();
+                }
+
+                renderActiveView();
+            }
+
+            function openStandaloneDisplay() {
+                const win = window.open('', '_blank', 'width=1280,height=800');
+                const clinicsCardsHtml = clinicsList.map(c => `
+                    <div class="bg-white rounded-2xl p-5 border-2 ${c.currentTicketNumber ? 'border-sky-500' : 'border-sky-200'} flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-sky-950">${c.name}</h2>
+                            <p class="text-sm font-bold text-sky-700 mt-1">${c.currentPatientName || (c.currentTicketNumber ? '' : 'بانتظار استدعاء المراجع التالي')}</p>
+                        </div>
+                        <div class="px-5 py-3 rounded-2xl bg-sky-600 text-white text-3xl font-black" dir="ltr">
+                            ${c.currentTicketNumber || '---'}
+                        </div>
+                    </div>
+                `).join('');
+
+                if (win && win.document) {
+                    const closingScriptTag = '<' + '/script>';
+                    win.document.write(
+                        '<!DOCTYPE html>' +
+                        '<html lang="ar" dir="rtl">' +
+                        '<head>' +
+                        '<meta charset="UTF-8" />' +
+                        `<title>${centerName} - شاشة العرض المستقلة</title>` +
+                        '<script src="https://cdn.tailwindcss.com">' + closingScriptTag +
+                        '<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet" />' +
+                        '<style>body { font-family: "Cairo", sans-serif; background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 100%); }</style>' +
+                        '</head>' +
+                        '<body class="p-6">' +
+                        '<div class="max-w-6xl mx-auto space-y-6">' +
+                        `<h1 class="text-2xl sm:text-3xl font-black text-sky-950">${centerName} — شاشة العرض المستقلة</h1>` +
+                        `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">${clinicsCardsHtml}</div>` +
+                        '</div>' +
+                        '</body>' +
+                        '</html>'
+                    );
+                    win.document.close();
+                } else {
+                    showToast('يرجى السماح بفتح النوافذ المنبثقة لعرض الشاشة المستقلة', true);
+                }
+            }
+
+            function toggleClinicSettingsModal(open) {
+                const modal = document.getElementById('clinic-settings-modal');
+                if (!modal) return;
+                const shouldOpen = typeof open === 'boolean' ? open : modal.classList.contains('hidden');
+                modal.classList.toggle('hidden', !shouldOpen);
+                if (shouldOpen) {
+                    renderHeader();
+                }
+            }
+
+            function handleSettingsBackdropClick(event) {
+                if (event.target && event.target.id === 'clinic-settings-modal') {
+                    toggleClinicSettingsModal(false);
+                }
+            }
+
+            function revealFullScreenExitBtnTemporarily() {
+                if (!document.body.classList.contains('is-fullscreen-mode')) return;
+                document.body.classList.add('cursor-active');
+                clearTimeout(window.__fsCursorTimer);
+                window.__fsCursorTimer = setTimeout(() => {
+                    document.body.classList.remove('cursor-active');
+                }, 2200);
+            }
+
+            function syncFullScreenUi() {
+                const isFs = Boolean(document.fullscreenElement || document.body.classList.contains('is-fullscreen-mode'));
+                document.body.classList.toggle('is-fullscreen-mode', isFs);
+
+                const floatingExitBtn = document.getElementById('exit-fullscreen-floating-btn');
+                if (floatingExitBtn) {
+                    floatingExitBtn.classList.toggle('hidden', !isFs);
+                }
+
+                if (isFs) {
+                    revealFullScreenExitBtnTemporarily();
+                } else {
+                    document.body.classList.remove('cursor-active');
+                    clearTimeout(window.__fsCursorTimer);
+                }
+
+                const iconEl = document.getElementById('fullscreen-btn-icon');
+                if (iconEl) {
+                    iconEl.className = isFs ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+                }
+            }
+
+            document.addEventListener('mousemove', revealFullScreenExitBtnTemporarily, { passive: true });
+            document.addEventListener('pointermove', revealFullScreenExitBtnTemporarily, { passive: true });
+            document.addEventListener('touchstart', revealFullScreenExitBtnTemporarily, { passive: true });
+
+            async function toggleFullScreenMode(forceState) {
+                const currentlyFs = Boolean(document.fullscreenElement || document.body.classList.contains('is-fullscreen-mode'));
+                const targetFs = typeof forceState === 'boolean' ? forceState : !currentlyFs;
+
+                try {
+                    if (targetFs) {
+                        document.body.classList.add('is-fullscreen-mode');
+                        if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                            await document.documentElement.requestFullscreen();
+                        }
+                    } else {
+                        document.body.classList.remove('is-fullscreen-mode');
+                        if (document.fullscreenElement && document.exitFullscreen) {
+                            await document.exitFullscreen();
+                        }
+                    }
+                } catch (_) {
+                    document.body.classList.toggle('is-fullscreen-mode', targetFs);
+                } finally {
+                    syncFullScreenUi();
+                }
+            }
+
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    document.body.classList.remove('is-fullscreen-mode');
+                } else {
+                    document.body.classList.add('is-fullscreen-mode');
+                }
+                syncFullScreenUi();
+            });
+
+            function updateCenterName(val) {
+                const snap = cloneSnapshot();
+                centerName = val.trim() || 'مستشفى الملك فيصل';
+                const titleEl = document.getElementById('navbar-center-title');
+                if (titleEl) titleEl.textContent = centerName;
+
+                clearTimeout(centerNameSaveTimer);
+                centerNameSaveTimer = setTimeout(() => {
+                    syncMutationWithFirestore(() => {}, snap);
+                }, 350);
+            }
+
+            function setNavbarShape(shape) {
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    navbarShape = shape === 'gradient-banner' ? 'top-capsule' : shape;
+                }, snap, { renderHeaderToo: true });
+            }
+
+            function setInterfaceTheme(theme) {
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    interfaceTheme = theme;
+                    applySkyColorIdea(theme);
+                }, snap, { renderHeaderToo: true });
+                showToast(currentLanguage === 'en' ? 'Interface theme updated' : 'تم تغيير نمط الواجهة');
+            }
+
+            function applySkyColorIdea(theme) {
+                const paletteByTheme = {
+                    'sky-frame-sharp': {
+                        bgStart: '#f0f9ff', bgMid: '#ffffff', bgEnd: '#dbeafe',
+                        accent: '#0284c7', surface: '#ffffff', surfaceSoft: '#eff6ff',
+                        border: '#0284c7', text: '#082f49'
+                    },
+                    'sky-frame-elevated': {
+                        bgStart: '#e0f2fe', bgMid: '#f8fcff', bgEnd: '#bae6fd',
+                        accent: '#0369a1', surface: '#ffffff', surfaceSoft: '#e0f2fe',
+                        border: '#0369a1', text: '#082f49'
+                    },
+                    'sky-double-frame': {
+                        bgStart: '#f0f9ff', bgMid: '#ffffff', bgEnd: '#e0f2fe',
+                        accent: '#0284c7', surface: '#ffffff', surfaceSoft: '#f0f9ff',
+                        border: '#0284c7', text: '#0c4a6e'
+                    },
+                    'sky-dashed-clean': {
+                        bgStart: '#f7fcff', bgMid: '#ffffff', bgEnd: '#e6f6ff',
+                        accent: '#0ea5e9', surface: '#ffffff', surfaceSoft: '#f0f9ff',
+                        border: '#38bdf8', text: '#075985'
+                    },
+                    'sky-top-accent': {
+                        bgStart: '#e8f6ff', bgMid: '#ffffff', bgEnd: '#f0f9ff',
+                        accent: '#0284c7', surface: '#ffffff', surfaceSoft: '#f0f9ff',
+                        border: '#7dd3fc', text: '#0c4a6e'
+                    }
+                };
+
+                const chosen = paletteByTheme[theme] || paletteByTheme['sky-frame-sharp'];
+                const rootStyle = document.body.style;
+                rootStyle.setProperty('--sky-bg-start', chosen.bgStart);
+                rootStyle.setProperty('--sky-bg-mid', chosen.bgMid);
+                rootStyle.setProperty('--sky-bg-end', chosen.bgEnd);
+                rootStyle.setProperty('--sky-accent', chosen.accent);
+                rootStyle.setProperty('--sky-surface', chosen.surface);
+                rootStyle.setProperty('--sky-surface-soft', chosen.surfaceSoft);
+                rootStyle.setProperty('--sky-border', chosen.border);
+                rootStyle.setProperty('--sky-text', chosen.text);
+            }
+
+            function setLanguage(lang) {
+                const snap = cloneSnapshot();
+                const nextLang = lang === 'en' ? 'en' : 'ar';
+                syncMutationWithFirestore(() => {
+                    const prevDefaultName = UI_TEXTS[currentLanguage].defaultCenterName;
+                    currentLanguage = nextLang;
+                    if (centerName === prevDefaultName) {
+                        centerName = UI_TEXTS[nextLang].defaultCenterName;
+                    }
+                }, snap, { renderHeaderToo: true });
+                showToast(nextLang === 'en' ? 'Language switched to English' : 'تم تغيير اللغة إلى العربية');
+            }
+
+            function applyLanguageDirectionAndTexts() {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                document.documentElement.lang = currentLanguage;
+                document.documentElement.dir = currentLanguage === 'en' ? 'ltr' : 'rtl';
+                document.title = t.pageTitle;
+
+                const setText = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = val;
+                };
+                const setPlaceholder = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.placeholder = val;
+                };
+
+                const floatingBtn = document.getElementById('exit-fullscreen-floating-btn');
+                if (floatingBtn) {
+                    floatingBtn.title = t.exitFullscreen;
+                    floatingBtn.setAttribute('aria-label', t.exitFullscreen);
+                    floatingBtn.innerHTML = `<i class="fa-solid fa-compress"></i><span>${t.exitFullscreen}</span>`;
+                }
+
+                setSyncStatus(isFirestoreReady, isFirestoreReady ? t.liveStatus : t.offlineStatus);
+
+                const tabReception = document.getElementById('tab-reception');
+                if (tabReception) tabReception.innerHTML = `<i class="fa-solid fa-ticket"></i><span>${t.tabReception}</span>`;
+
+                const tabControl = document.getElementById('tab-control');
+                if (tabControl) tabControl.innerHTML = `<i class="fa-solid fa-sliders"></i><span>${t.tabControl}</span>`;
+
+                const tabDisplay = document.getElementById('tab-display');
+                if (tabDisplay) tabDisplay.innerHTML = `<i class="fa-solid fa-tv"></i><span>${t.tabDisplay}</span>`;
+
+                const standaloneBtn = document.querySelector('button[onclick="openStandaloneDisplay()"]');
+                if (standaloneBtn) standaloneBtn.innerHTML = `<i class="fa-solid fa-up-right-from-square"></i><span>${t.standaloneDisplay}</span>`;
+
+                updateVoiceButtonUi();
+
+                const fsBtn = document.getElementById('toggle-fullscreen-btn');
+                if (fsBtn) {
+                    const isFs = Boolean(document.fullscreenElement || document.body.classList.contains('is-fullscreen-mode'));
+                    fsBtn.title = t.fullscreen;
+                    fsBtn.setAttribute('aria-label', t.fullscreen);
+                    fsBtn.innerHTML = `<i id="fullscreen-btn-icon" class="fa-solid ${isFs ? 'fa-compress' : 'fa-expand'}"></i><span>${t.fullscreen}</span>`;
+                }
+
+                const settingsModal = document.getElementById('clinic-settings-modal');
+                if (settingsModal) {
+                    const modalTitle = settingsModal.querySelector('h3 span');
+                    const modalSubtitle = settingsModal.querySelector('h3')?.nextElementSibling;
+                    if (modalTitle) modalTitle.textContent = t.settingsTitle;
+                    if (modalSubtitle) modalSubtitle.textContent = t.settingsSubtitle;
+
+                    const dropzoneTexts = document.querySelectorAll('#logo-dropzone p');
+                    if (dropzoneTexts[0]) dropzoneTexts[0].textContent = t.logoTitle;
+                    if (dropzoneTexts[1]) dropzoneTexts[1].textContent = t.logoSubtitle;
+
+                    const chooseLabel = document.querySelector('#logo-dropzone label span');
+                    if (chooseLabel) chooseLabel.textContent = t.chooseImage;
+
+                    const removeBtn = document.querySelector('#logo-dropzone button[onclick="clearCustomLogo()"]');
+                    if (removeBtn) removeBtn.textContent = t.removeImage;
+
+                    const addClinicBtn = document.querySelector('form[onsubmit="addNewClinic(event)"] button[type="submit"] span');
+                    if (addClinicBtn) addClinicBtn.textContent = t.addClinicBtn;
+                }
+
+                setText('label-center-name', t.centerNameLabel);
+                setText('label-navbar-shape', t.navbarShapeLabel);
+                setText('label-theme-style', t.themeStyleLabel);
+                setText('label-language-select', t.languageLabel);
+
+                setPlaceholder('new-clinic-name', t.newClinicNamePlaceholder);
+                setPlaceholder('new-clinic-prefix', t.newClinicPrefixPlaceholder);
+                setPlaceholder('patient-name-input', t.patientNamePlaceholder);
+
+                const receptionResetAllBtn = document.getElementById('reception-reset-all-btn');
+                if (receptionResetAllBtn) {
+                    receptionResetAllBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i><span>${t.resetAllQueuesBtn}</span>`;
+                }
+
+                const receptionHeading = document.querySelector('#view-reception h2');
+                const receptionSub = receptionHeading?.nextElementSibling;
+                if (receptionHeading) receptionHeading.textContent = t.receptionTitle;
+                if (receptionSub) receptionSub.textContent = t.receptionSubtitle;
+
+                const statsHeading = document.querySelector('#view-reception h3 span');
+                const statsSub = document.querySelector('#view-reception h3')?.parentElement?.nextElementSibling;
+                const liveBadge = document.querySelector('#view-reception .rounded-full.bg-sky-50');
+                if (statsHeading) statsHeading.textContent = t.statsTitle;
+                if (statsSub) statsSub.textContent = t.statsSubtitle;
+                if (liveBadge) liveBadge.textContent = t.liveBadge;
+
+                const statLabels = document.querySelectorAll('#view-reception .grid.grid-cols-2 > div > p:first-child');
+                const statKeys = ['statTotal', 'statWaiting', 'statCalled', 'statCompleted', 'statActiveClinics'];
+                statLabels.forEach((el, idx) => {
+                    if (statKeys[idx]) el.textContent = t[statKeys[idx]];
+                });
+
+                const indHeading = document.querySelector('#view-control h2 span');
+                const indSub = document.querySelector('#view-control h2')?.parentElement?.nextElementSibling;
+                const exitIndBtnLabel = document.getElementById('exit-independent-clinic-btn-label');
+                if (indHeading) indHeading.textContent = t.independentTitle;
+                if (indSub) indSub.textContent = t.independentSubtitle;
+                if (exitIndBtnLabel) exitIndBtnLabel.textContent = t.showAllClinicsBtn;
+
+                const displayHeading = document.querySelector('#all-clinics-display-wrapper h2 span');
+                if (displayHeading) displayHeading.textContent = t.displayListTitle;
+
+                setText('admin-clinics-list-title', t.adminClinicsTitle);
+                setText('run-queue-test-btn-label', currentLanguage === 'en' ? 'Run Queue Test' : 'تشغيل اختبار الطوابير');
+
+                const focusedLabel = document.querySelector('#focused-clinic-card span.rounded-full');
+                if (focusedLabel) focusedLabel.textContent = t.focusedCurrentLabel;
+
+                const langSelect = document.getElementById('language-select');
+                if (langSelect) langSelect.value = currentLanguage;
+            }
+
+            function applyLogoDataUrl(dataUrl) {
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    customLogoDataUrl = dataUrl || '';
+                }, snap, { renderHeaderToo: true });
+            }
+
+            function handleLogoFileSelected(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    applyLogoDataUrl(e.target.result);
+                    showToast('تم تحديث صورة المركز بنجاح');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function handleLogoDragOver(event) {
+                event.preventDefault();
+                const zone = document.getElementById('logo-dropzone');
+                if (zone) zone.classList.add('border-sky-600', 'bg-sky-100/70');
+            }
+
+            function handleLogoDragLeave(event) {
+                event.preventDefault();
+                const zone = document.getElementById('logo-dropzone');
+                if (zone) zone.classList.remove('border-sky-600', 'bg-sky-100/70');
+            }
+
+            function handleLogoDrop(event) {
+                event.preventDefault();
+                handleLogoDragLeave(event);
+                const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+                if (!file || !file.type.startsWith('image/')) {
+                    showToast('يرجى إفلات ملف صورة صالح', true);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    applyLogoDataUrl(e.target.result);
+                    showToast('تم تحديث صورة المركز بنجاح');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function clearCustomLogo() {
+                const input = document.getElementById('logo-file-input');
+                if (input) input.value = '';
+                applyLogoDataUrl('');
+                showToast('تمت إزالة صورة المركز');
+            }
+
+            function issueTicketForClinic(clinicId) {
+                const clinic = clinicsList.find(c => c.id === clinicId);
+                if (!clinic) return;
+
+                const nameInput = document.getElementById('patient-name-input');
+                const patientName = (nameInput && nameInput.value.trim()) || '';
+                const snap = cloneSnapshot();
+                let issuedTicket = null;
+
+                syncMutationWithFirestore(() => {
+                    clinic.lastNumber = (Number(clinic.lastNumber) || 0) + 1;
+                    const ticketNumber = `${clinic.prefix}-${clinic.lastNumber}`;
+                    issuedTicket = {
+                        id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        clinicId: clinic.id,
+                        clinicName: clinic.name,
+                        number: ticketNumber,
+                        patientName,
+                        priority: 'normal',
+                        status: 'waiting',
+                        createdAt: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
+                    };
+                    ticketsList.unshift(issuedTicket);
+                    if (nameInput) nameInput.value = '';
+                }, snap);
+
+                if (issuedTicket) {
+                    showToast(`تم إصدار التذكرة ${issuedTicket.number} لـ ${clinic.name}`);
+                    setTimeout(() => printTicketReceipt(issuedTicket, clinic), 80);
+                }
+            }
+
+            function printTicketReceipt(ticket, clinicObj) {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                const clinicRef = clinicObj || clinicsList.find(c => c.id === ticket.clinicId);
+                document.getElementById('receipt-center-name').textContent = centerName;
+                document.getElementById('receipt-clinic-name').textContent = clinicRef ? getClinicDisplayName(clinicRef) : ticket.clinicName;
+                document.getElementById('receipt-ticket-number').textContent = ticket.number;
+                document.getElementById('receipt-patient-name').textContent = ticket.patientName ? `${t.receiptPatientPrefix} ${ticket.patientName}` : '';
+                document.getElementById('receipt-time').textContent = `${t.receiptTimePrefix} ${ticket.createdAt}`;
+
+                try {
+                    if (typeof require === 'function') {
+                        const { ipcRenderer } = require('electron');
+                        ipcRenderer.send('print-ticket-silent');
+                        return;
+                    }
+                } catch (_) {}
+
+                window.print();
+            }
+
+            function callNextPatient(clinicId) {
+                const clinic = clinicsList.find(c => c.id === clinicId);
+                if (!clinic) return;
+
+                let idx = -1;
+                for (let i = ticketsList.length - 1; i >= 0; i--) {
+                    if (ticketsList[i].clinicId === clinicId && ticketsList[i].status === 'waiting') {
+                        idx = i;
+                        break;
+                    }
+                }
+
+                if (idx === -1) {
+                    showToast(`لا يوجد مراجعون في انتظار ${clinic.name}`, true);
+                    return;
+                }
+
+                const snap = cloneSnapshot();
+                let calledLabel = '';
+
+                syncMutationWithFirestore(() => {
+                    const nextTicket = ticketsList[idx];
+                    nextTicket.status = 'called';
+                    clinic.currentTicketNumber = nextTicket.number;
+                    clinic.currentPatientName = nextTicket.patientName || '';
+                    calledLabel = nextTicket.patientName ? `${nextTicket.number} (${nextTicket.patientName})` : nextTicket.number;
+                }, snap);
+
+                if (calledLabel) {
+                    lastAnnouncedMap[clinic.id] = clinic.currentTicketNumber;
+                    enqueueClinicAnnouncement(clinic);
+                    showToast(`تم استدعاء ${calledLabel} إلى ${clinic.name}`);
+                }
+            }
+
+            function completeCurrentTicket(clinicId) {
+                const clinic = clinicsList.find(c => c.id === clinicId);
+                if (!clinic) return;
+
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    if (clinic.currentTicketNumber) {
+                        for (let i = 0; i < ticketsList.length; i++) {
+                            if (
+                                ticketsList[i].clinicId === clinicId &&
+                                ticketsList[i].number === clinic.currentTicketNumber &&
+                                ticketsList[i].status === 'called'
+                            ) {
+                                ticketsList[i].status = 'completed';
+                                break;
+                            }
+                        }
+                    }
+                    clinic.currentTicketNumber = '';
+                    clinic.currentPatientName = '';
+                }, snap);
+
+                lastAnnouncedMap[clinic.id] = '';
+                showToast(`تم إنهاء المراجع الحالي في ${clinic.name}`);
+            }
+
+            function resetClinicQueue(clinicId) {
+                const clinic = clinicsList.find(c => c.id === clinicId);
+                if (!clinic) return;
+
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    clinic.lastNumber = 0;
+                    clinic.currentTicketNumber = '';
+                    clinic.currentPatientName = '';
+                    ticketsList = ticketsList.filter(tItem => tItem.clinicId !== clinicId);
+                }, snap);
+
+                lastAnnouncedMap[clinic.id] = '';
+                showToast(currentLanguage === 'en' ? `Reset queue for ${getClinicDisplayName(clinic)}` : `تم تصفير طابور ${getClinicDisplayName(clinic)}`);
+            }
+
+            function resetAllQueues() {
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    clinicsList.forEach(clinic => {
+                        clinic.lastNumber = 0;
+                        clinic.currentTicketNumber = '';
+                        clinic.currentPatientName = '';
+                        lastAnnouncedMap[clinic.id] = '';
+                    });
+                    ticketsList = [];
+                }, snap);
+
+                showToast(currentLanguage === 'en' ? 'All queues have been reset' : 'تم تصفير جميع الطوابير');
+            }
+
+            function addNewClinic(event) {
+                event.preventDefault();
+                const nameInput = document.getElementById('new-clinic-name');
+                const prefixInput = document.getElementById('new-clinic-prefix');
+                const name = nameInput.value.trim();
+                const prefix = prefixInput.value.trim().toUpperCase();
+
+                if (!name || !prefix) return;
+
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    const color = COLOR_KEYS[clinicsList.length % COLOR_KEYS.length];
+                    const newId = `c-${Date.now()}`;
+                    clinicsList.push({
+                        id: newId,
+                        name,
+                        prefix,
+                        color,
+                        lastNumber: 0,
+                        currentTicketNumber: '',
+                        currentPatientName: ''
+                    });
+                    lastAnnouncedMap[newId] = '';
+                    nameInput.value = '';
+                    prefixInput.value = '';
+                }, snap);
+
+                showToast(`تمت إضافة ${name}`);
+            }
+
+            function deleteClinic(clinicId) {
+                if (clinicsList.length <= 1) {
+                    showToast('يجب الإبقاء على عيادة واحدة على الأقل', true);
+                    return;
+                }
+
+                const snap = cloneSnapshot();
+                syncMutationWithFirestore(() => {
+                    clinicsList = clinicsList.filter(c => c.id !== clinicId);
+                    ticketsList = ticketsList.filter(t => t.clinicId !== clinicId);
+                    delete lastAnnouncedMap[clinicId];
+                    if (window.focusedClinicControlId === clinicId) {
+                        window.focusedClinicControlId = '';
+                    }
+                    if (focusedDisplayClinicId === clinicId) {
+                        exitFocusedClinicDisplay();
+                    }
+                }, snap);
+
+                showToast('تم حذف العيادة');
+            }
+
+            function selectIndependentClinicDashboard(clinicId) {
+                window.focusedClinicControlId = clinicId || '';
+                renderControlPanel();
+            }
+
+            function focusOnClinic(clinicId) {
+                const clinic = clinicsList.find(c => c.id === clinicId);
+                if (!clinic) return;
+
+                focusedDisplayClinicId = clinic.id;
+                switchTab('display', { keepFocus: true });
+
+                document.getElementById('all-clinics-display-wrapper').classList.add('hidden');
+                document.getElementById('focused-clinic-card').classList.remove('hidden');
+                renderFocusedClinicDisplay(clinic);
+            }
+
+            function exitFocusedClinicDisplay() {
+                focusedDisplayClinicId = '';
+                const focusedCard = document.getElementById('focused-clinic-card');
+                const allWrapper = document.getElementById('all-clinics-display-wrapper');
+                if (focusedCard) focusedCard.classList.add('hidden');
+                if (allWrapper) allWrapper.classList.remove('hidden');
+            }
+
+            function renderFocusedClinicDisplay(clinic) {
+                const hasCurrent = Boolean(clinic.currentTicketNumber);
+
+                document.getElementById('focused-clinic-name').textContent = getClinicDisplayName(clinic);
+                document.getElementById('focused-clinic-ticket').textContent = hasCurrent ? clinic.currentTicketNumber : '---';
+                const patientEl = document.getElementById('focused-clinic-patient');
+                if (patientEl) {
+                    patientEl.textContent = hasCurrent ? clinic.currentPatientName : '';
+                }
+            }
+
+            function renderHeader() {
+                applyLanguageDirectionAndTexts();
+
+                const titleEl = document.getElementById('navbar-center-title');
+                if (titleEl) {
+                    titleEl.textContent = centerName;
+                }
+
+                const centerNameInput = document.getElementById('center-name-input');
+                if (centerNameInput && document.activeElement !== centerNameInput) {
+                    centerNameInput.value = centerName;
+                }
+
+                const navbarShapeSelect = document.getElementById('navbar-shape-select');
+                if (navbarShapeSelect && document.activeElement !== navbarShapeSelect) {
+                    navbarShapeSelect.value = navbarShape === 'gradient-banner' ? 'top-capsule' : navbarShape;
+                }
+
+                const navbar = document.getElementById('main-navbar');
+                if (navbar) {
+                    navbar.classList.remove(
+                        'navbar-top-capsule',
+                        'navbar-centered-sym',
+                        'navbar-sidebar-rail',
+                        'navbar-separated-cards',
+                        'navbar-compact-bar',
+                        'navbar-glass-floating',
+                        'navbar-gradient-banner'
+                    );
+                    navbar.classList.add(`navbar-${navbarShape === 'gradient-banner' ? 'top-capsule' : navbarShape}`);
+                }
+
+                const themeStyleSelect = document.getElementById('theme-style-select');
+                if (themeStyleSelect && document.activeElement !== themeStyleSelect) {
+                    themeStyleSelect.value = interfaceTheme;
+                }
+
+                document.body.classList.remove(
+                    'theme-modern',
+                    'theme-classic-clinic',
+                    'theme-medical-blue',
+                    'theme-medical-mint',
+                    'theme-sterile-white',
+                    'theme-royal-dark',
+                    'theme-sky-frosted',
+                    'theme-arctic-frame',
+                    'theme-sky-mist',
+                    'theme-pure-breeze',
+                    'theme-sky-frame-medium',
+                    'theme-sky-frame-sharp',
+                    'theme-sky-frame-soft',
+                    'theme-sky-frame-elevated',
+                    'theme-sky-double-frame',
+                    'theme-sky-dashed-clean',
+                    'theme-sky-top-accent',
+                    'theme-sky-snow-bright'
+                );
+                const activeTheme = ALLOWED_THEMES.includes(interfaceTheme) ? interfaceTheme : 'sky-frame-sharp';
+                interfaceTheme = activeTheme;
+                document.body.classList.add(`theme-${activeTheme}`);
+                applySkyColorIdea(activeTheme);
+
+                const navLogo = document.getElementById('navbar-clinic-logo');
+                const defaultBadge = document.getElementById('navbar-default-badge');
+                const settingsPreview = document.getElementById('settings-logo-preview');
+
+                if (customLogoDataUrl) {
+                    if (navLogo) {
+                        navLogo.src = customLogoDataUrl;
+                        navLogo.classList.remove('hidden');
+                    }
+                    if (defaultBadge) {
+                        defaultBadge.classList.add('hidden');
+                    }
+                    if (settingsPreview) {
+                        settingsPreview.src = customLogoDataUrl;
+                        settingsPreview.classList.remove('hidden');
+                    }
+                } else {
+                    if (navLogo) {
+                        navLogo.src = '';
+                        navLogo.classList.add('hidden');
+                    }
+                    if (defaultBadge) {
+                        defaultBadge.classList.remove('hidden');
+                    }
+                    if (settingsPreview) {
+                        settingsPreview.src = '';
+                        settingsPreview.classList.add('hidden');
+                    }
+                }
+
+                renderAdminClinicsList();
+            }
+
+            function renderAdminClinicsList() {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                const listEl = document.getElementById('admin-clinics-manage-list');
+                const countEl = document.getElementById('admin-clinics-count-badge');
+                if (countEl) {
+                    countEl.textContent = String(clinicsList.length);
+                }
+                if (!listEl) return;
+
+                listEl.innerHTML = clinicsList.map(clinic => `
+                    <div class="p-3 rounded-2xl bg-sky-50/70 border border-sky-200 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-black shrink-0" dir="ltr">${clinic.prefix}</span>
+                            <span class="text-sm font-extrabold text-sky-950 truncate">${getClinicDisplayName(clinic)}</span>
+                        </div>
+                        <button type="button" onclick="deleteClinic('${clinic.id}')" title="${t.deleteClinicBtn}" class="px-3 py-1.5 rounded-xl bg-white hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-extrabold transition-all flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-trash"></i>
+                            <span>${t.deleteClinicBtn}</span>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            function runQueueSystemTest() {
+                const snap = cloneSnapshot();
+                let totalGenerated = 0;
+
+                syncMutationWithFirestore(() => {
+                    clinicsList.forEach(clinic => {
+                        clinic.lastNumber = 0;
+                        clinic.currentTicketNumber = '';
+                        clinic.currentPatientName = '';
+                    });
+                    ticketsList = [];
+
+                    const samplePatients = [
+                        'أحمد المنصور',
+                        'سارة العتيبي',
+                        'محمد القحطاني',
+                        'نورة الشمري'
+                    ];
+
+                    const targetClinics = clinicsList.slice(0, Math.min(3, clinicsList.length));
+                    targetClinics.forEach((clinic, idx) => {
+                        for (let i = 0; i < 2; i++) {
+                            clinic.lastNumber += 1;
+                            const ticketNumber = `${clinic.prefix}-${clinic.lastNumber}`;
+                            const patientName = samplePatients[(idx * 2 + i) % samplePatients.length];
+                            ticketsList.unshift({
+                                id: `test-${Date.now()}-${clinic.id}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+                                clinicId: clinic.id,
+                                clinicName: clinic.name,
+                                number: ticketNumber,
+                                patientName,
+                                priority: 'normal',
+                                status: 'waiting',
+                                createdAt: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
+                            });
+                        }
+
+                        for (let i = ticketsList.length - 1; i >= 0; i--) {
+                            if (ticketsList[i].clinicId === clinic.id && ticketsList[i].status === 'waiting') {
+                                ticketsList[i].status = 'called';
+                                clinic.currentTicketNumber = ticketsList[i].number;
+                                clinic.currentPatientName = ticketsList[i].patientName || '';
+                                break;
+                            }
+                        }
+                    });
+
+                    totalGenerated = ticketsList.length;
+                }, snap);
+
+                showToast(
+                    currentLanguage === 'en'
+                        ? `Test completed: generated ${totalGenerated} sample tickets and called patients.`
+                        : `اكتمل الاختبار: تم إنشاء ${totalGenerated} تذاكر تجريبية واستدعاء مراجعين.`
+                );
+            }
+
+            function renderReception() {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                const grid = document.getElementById('reception-clinics-grid');
+                if (grid) {
+                    grid.innerHTML = clinicsList.map(clinic => {
+                        const style = COLOR_STYLES[clinic.color] || COLOR_STYLES.sky;
+                        const nextNum = (Number(clinic.lastNumber) || 0) + 1;
+                        const waitingCount = ticketsList.filter(tItem => tItem.clinicId === clinic.id && tItem.status === 'waiting').length;
+
+                        return `
+                            <div class="group ${currentLanguage === 'en' ? 'text-left' : 'text-right'} p-5 rounded-2xl border-2 ${style.border} bg-white ${style.hover} shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+                                <div class="flex items-center justify-between gap-2 w-full">
+                                    <span class="px-3 py-1 rounded-xl text-sm font-black ${style.badge} shadow-sm" dir="ltr">
+                                        ${clinic.prefix}-${nextNum}
+                                    </span>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-extrabold bg-sky-50 text-sky-800 border border-sky-200">
+                                            ${t.waitingLabel}: ${waitingCount}
+                                        </span>
+                                        <button type="button" onclick="resetClinicQueue('${clinic.id}')" title="${t.resetQueueBtn}" class="px-2.5 py-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-extrabold transition-all flex items-center gap-1">
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                            <span>${t.resetQueueBtn}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="issueTicketForClinic('${clinic.id}')" class="w-full ${currentLanguage === 'en' ? 'text-left' : 'text-right'} active:scale-95 transition-transform flex-1 flex flex-col justify-between mt-3">
+                                    <div class="my-2">
+                                        <h3 class="text-lg font-black text-sky-950 group-hover:text-sky-700 transition-colors">${getClinicDisplayName(clinic)}</h3>
+                                        <p class="text-xs font-bold text-sky-700 mt-1">${t.currentLabel}: ${clinic.currentTicketNumber || t.noneLabel}</p>
+                                    </div>
+                                    <div class="text-xs font-extrabold text-sky-600 flex items-center gap-1.5 pt-2">
+                                        <i class="fa-solid fa-print"></i>
+                                        <span>${t.issuePrintBtn}</span>
+                                    </div>
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            function renderControlPanel() {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                const totalTicketsEl = document.getElementById('stat-total-tickets');
+                const waitingTicketsEl = document.getElementById('stat-waiting-tickets');
+                const calledTicketsEl = document.getElementById('stat-called-tickets');
+                const completedTicketsEl = document.getElementById('stat-completed-tickets');
+                const activeClinicsEl = document.getElementById('stat-active-clinics');
+
+                const totalCount = ticketsList.length;
+                const waitingCountAll = ticketsList.filter(tItem => tItem.status === 'waiting').length;
+                const calledCountAll = ticketsList.filter(tItem => tItem.status === 'called').length;
+                const completedCountAll = ticketsList.filter(tItem => tItem.status === 'completed').length;
+                const activeClinicsCount = clinicsList.length;
+
+                if (totalTicketsEl) totalTicketsEl.textContent = String(totalCount);
+                if (waitingTicketsEl) waitingTicketsEl.textContent = String(waitingCountAll);
+                if (calledTicketsEl) calledTicketsEl.textContent = String(calledCountAll);
+                if (completedTicketsEl) completedTicketsEl.textContent = String(completedCountAll);
+                if (activeClinicsEl) activeClinicsEl.textContent = String(activeClinicsCount);
+
+                const selectEl = document.getElementById('clinic-control-selector');
+                if (selectEl) {
+                    const currentVal = window.focusedClinicControlId || '';
+                    selectEl.innerHTML = `<option value="">${t.allClinicsOption} (${clinicsList.length})</option>` +
+                        clinicsList.map(c => `<option value="${c.id}" ${c.id === currentVal ? 'selected' : ''}>${getClinicDisplayName(c)}</option>`).join('');
+                }
+
+                const pillsEl = document.getElementById('independent-clinic-pills');
+                const exitBtn = document.getElementById('exit-independent-clinic-btn');
+                if (pillsEl) {
+                    const allBtnClass = !window.focusedClinicControlId
+                        ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                        : 'bg-sky-50 text-sky-900 border-sky-200 hover:border-sky-400 hover:bg-sky-100';
+                    const allClinicsPill = `
+                        <button type="button" onclick="selectIndependentClinicDashboard('')"
+                            class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 border ${allBtnClass}">
+                            <i class="fa-solid fa-border-all"></i>
+                            <span>${t.allClinicsOption}</span>
+                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black ${!window.focusedClinicControlId ? 'bg-white text-sky-700' : 'bg-sky-100 text-sky-800'}">${clinicsList.length}</span>
+                        </button>
+                    `;
+                    const clinicBtnsHtml = clinicsList.map(c => {
+                        const isSelected = window.focusedClinicControlId === c.id;
+                        const waitingCount = ticketsList.filter(tItem => tItem.clinicId === c.id && tItem.status === 'waiting').length;
+                        return `
+                            <button type="button" onclick="selectIndependentClinicDashboard('${c.id}')"
+                                class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 border ${isSelected ? 'bg-sky-600 text-white border-sky-600 shadow-sm' : 'bg-white text-sky-900 border-sky-200 hover:border-sky-400 hover:bg-sky-50'}">
+                                <span>${getClinicDisplayName(c)}</span>
+                                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black ${isSelected ? 'bg-white text-sky-700' : 'bg-sky-100 text-sky-800'}">${waitingCount}</span>
+                            </button>
+                        `;
+                    }).join('');
+                    pillsEl.innerHTML = allClinicsPill + clinicBtnsHtml;
+                }
+
+                if (exitBtn) {
+                    exitBtn.classList.toggle('hidden', !window.focusedClinicControlId);
+                }
+
+                const grid = document.getElementById('control-clinics-grid');
+                if (!grid) return;
+
+                const visibleClinics = window.focusedClinicControlId
+                    ? clinicsList.filter(c => c.id === window.focusedClinicControlId)
+                    : clinicsList;
+
+                grid.className = window.focusedClinicControlId
+                    ? 'grid grid-cols-1 max-w-2xl mx-auto gap-5'
+                    : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5';
+
+                grid.innerHTML = visibleClinics.map(clinic => {
+                    const style = COLOR_STYLES[clinic.color] || COLOR_STYLES.sky;
+                    const waitingTickets = ticketsList.filter(tItem => tItem.clinicId === clinic.id && tItem.status === 'waiting');
+                    const currentPatientDisplay = clinic.currentPatientName && clinic.currentPatientName.trim()
+                        ? clinic.currentPatientName.trim()
+                        : (clinic.currentTicketNumber ? `${t.currentLabel}: ${clinic.currentTicketNumber}` : t.noCurrentPatient);
+
+                    return `
+                        <div class="bg-white rounded-3xl border ${style.border} shadow-sm overflow-hidden flex flex-col justify-between">
+                            <div>
+                                <div class="p-4 ${style.bg} border-b ${style.border} flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <div>
+                                            <h3 class="font-extrabold text-sky-950 text-base break-words">${getClinicDisplayName(clinic)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-5 space-y-4">
+                                    <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-200 flex items-center justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-bold text-sky-700">${t.currentPatientLabel}</p>
+                                            <p class="text-xl sm:text-2xl font-black text-sky-950 mt-0.5 break-words">${currentPatientDisplay}</p>
+                                        </div>
+                                        <span class="px-4 py-2 rounded-xl ${style.badge} text-2xl sm:text-3xl font-black shrink-0" dir="ltr">
+                                            ${clinic.currentTicketNumber || '---'}
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button type="button" onclick="callNextPatient('${clinic.id}')" class="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-extrabold hover:bg-sky-700 transition-all flex items-center justify-center gap-2">
+                                            <i class="fa-solid fa-bullhorn"></i>
+                                            <span>${t.callNextBtn}</span>
+                                        </button>
+                                        <button type="button" onclick="completeCurrentTicket('${clinic.id}')" class="px-4 py-2.5 rounded-xl bg-sky-50 text-sky-800 border border-sky-200 text-sm font-extrabold hover:bg-sky-100 transition-all flex items-center justify-center gap-2">
+                                            <i class="fa-solid fa-check"></i>
+                                            <span>${t.completeBtn}</span>
+                                        </button>
+                                        <button type="button" onclick="recallCurrentPatient('${clinic.id}')" class="col-span-2 px-4 py-2 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs sm:text-sm font-extrabold hover:bg-amber-100 transition-all flex items-center justify-center gap-2">
+                                            <i class="fa-solid fa-volume-high"></i>
+                                            <span>${t.recallBtn}</span>
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-xs font-extrabold text-sky-800 mb-2">${t.waitingListLabel} (${waitingTickets.length})</p>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            ${waitingTickets.length === 0
+                                                ? `<span class="text-xs text-sky-500 font-semibold">${t.noWaiting}</span>`
+                                                : waitingTickets.map(tItem => `<span class="px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-sky-900 text-sm sm:text-base font-black" dir="ltr">${tItem.patientName ? `${tItem.number} - ${tItem.patientName}` : tItem.number}</span>`).join('')
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            function renderDisplayScreen() {
+                const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                const listContainer = document.getElementById('display-clinics-list');
+                if (!listContainer) return;
+
+                listContainer.innerHTML = clinicsList.map(clinic => {
+                    const waitingCount = ticketsList.filter(tItem => tItem.clinicId === clinic.id && tItem.status === 'waiting').length;
+                    const hasCurrent = Boolean(clinic.currentTicketNumber);
+                    const hasPatientName = Boolean(clinic.currentPatientName && clinic.currentPatientName.trim());
+
+                    return `
+                        <div id="clinic-row-${clinic.id}" class="bg-white/95 hover:bg-white rounded-2xl border-2 ${hasCurrent ? 'border-sky-500 shadow-md' : 'border-sky-200 shadow-sm'} px-5 py-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 transition-all">
+                            <div class="flex items-center gap-4 min-w-0 flex-1">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2.5 flex-wrap">
+                                        <button type="button" onclick="focusOnClinic('${clinic.id}')" title="${t.fullscreen}" class="${currentLanguage === 'en' ? 'text-left' : 'text-right'} text-2xl sm:text-3xl font-black text-sky-950 hover:text-sky-600 transition-colors cursor-pointer break-words">
+                                            ${getClinicDisplayName(clinic)}
+                                        </button>
+                                    </div>
+                                    ${hasPatientName ? `
+                                    <p class="text-2xl sm:text-4xl font-black mt-1.5 break-words text-sky-700">
+                                        <i class="fa-solid fa-user-check ${currentLanguage === 'en' ? 'mr-1.5' : 'ml-1.5'} text-lg sm:text-2xl opacity-80"></i>
+                                        ${clinic.currentPatientName}
+                                    </p>
+                                    ` : (!hasCurrent ? `
+                                    <p class="text-base sm:text-lg font-bold mt-1.5 break-words text-sky-600">
+                                        <i class="fa-solid fa-user-check ${currentLanguage === 'en' ? 'mr-1.5' : 'ml-1.5'} text-sm opacity-80"></i>
+                                        ${t.availableWaitingText}
+                                    </p>
+                                    ` : '')}
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 shrink-0">
+                                <div class="px-4 py-2 rounded-2xl bg-sky-50 border border-sky-200 text-center">
+                                    <span class="block text-xs font-bold text-sky-700">${t.waitingLabel}</span>
+                                    <span class="text-xl sm:text-2xl font-black text-sky-950">${waitingCount}</span>
+                                </div>
+
+                                <div class="px-7 py-3.5 rounded-2xl ${hasCurrent ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-400 border border-sky-200'} text-5xl sm:text-6xl font-black min-w-[160px] text-center" dir="ltr">
+                                    ${hasCurrent ? clinic.currentTicketNumber : '---'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (focusedDisplayClinicId) {
+                    const activeFocused = clinicsList.find(c => c.id === focusedDisplayClinicId);
+                    if (activeFocused) {
+                        renderFocusedClinicDisplay(activeFocused);
+                    } else {
+                        exitFocusedClinicDisplay();
+                    }
+                }
+            }
+
+            function renderAll() {
+                renderHeader();
+                renderReception();
+                renderControlPanel();
+                renderDisplayScreen();
+            }
+
+            window.switchTab = switchTab;
+            window.openStandaloneDisplay = openStandaloneDisplay;
+            window.toggleClinicSettingsModal = toggleClinicSettingsModal;
+            window.handleSettingsBackdropClick = handleSettingsBackdropClick;
+            window.toggleFullScreenMode = toggleFullScreenMode;
+            window.toggleVoiceAnnouncement = toggleVoiceAnnouncement;
+            window.recallCurrentPatient = recallCurrentPatient;
+            window.updateCenterName = updateCenterName;
+            window.setNavbarShape = setNavbarShape;
+            window.setInterfaceTheme = setInterfaceTheme;
+            window.setLanguage = setLanguage;
+            window.handleLogoFileSelected = handleLogoFileSelected;
+            window.handleLogoDragOver = handleLogoDragOver;
+            window.handleLogoDragLeave = handleLogoDragLeave;
+            window.handleLogoDrop = handleLogoDrop;
+            window.clearCustomLogo = clearCustomLogo;
+            window.issueTicketForClinic = issueTicketForClinic;
+            window.callNextPatient = callNextPatient;
+            window.completeCurrentTicket = completeCurrentTicket;
+            window.resetClinicQueue = resetClinicQueue;
+            window.resetAllQueues = resetAllQueues;
+            window.addNewClinic = addNewClinic;
+            window.deleteClinic = deleteClinic;
+            window.selectIndependentClinicDashboard = selectIndependentClinicDashboard;
+            window.focusOnClinic = focusOnClinic;
+            window.runQueueSystemTest = runQueueSystemTest;
+
+            function withTimeout(promise, ms, label) {
+                return Promise.race([
+                    promise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error(label || 'Timeout')), ms))
+                ]);
+            }
+
+            async function initFirebaseSync() {
+                try {
+                    const [{ initializeApp }, { getAuth, signInAnonymously }, { getFirestore, doc, setDoc, onSnapshot }] = await withTimeout(
+                        Promise.all([
+                            import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+                            import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'),
+                            import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
+                        ]),
+                        5000,
+                        'Firebase SDK load timed out'
+                    );
+
+                    const firebaseConfig = {
+                        apiKey: 'AIzaSyBph2u70HB77Pt7t_EkfZVy3kSgZFkYFqI',
+                        authDomain: 'king-faisal-queue.firebaseapp.com',
+                        databaseURL: 'https://king-faisal-queue-default-rtdb.europe-west1.firebasedatabase.app',
+                        projectId: 'king-faisal-queue',
+                        storageBucket: 'king-faisal-queue.firebasestorage.app',
+                        messagingSenderId: '976660384649',
+                        appId: '1:976660384649:web:9d6e661bda871475052f58',
+                        measurementId: 'G-FHG2CFE3W3'
+                    };
+
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    const db = getFirestore(app);
+                    const queueDocRef = doc(db, 'queues', 'hospital_clinics_queue');
+
+                    firestoreSaveFn = (payload) => withTimeout(setDoc(queueDocRef, payload, { merge: true }), 6000, 'Firestore save timed out');
+
+                    await withTimeout(signInAnonymously(auth), 5000, 'Anonymous sign-in timed out');
+                    isFirestoreReady = true;
+                    const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                    setSyncStatus(true, t.liveStatus);
+
+                    onSnapshot(queueDocRef, async (snapshot) => {
+                        isFirestoreReady = true;
+                        const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                        setSyncStatus(true, currentT.liveStatus);
+
+                        if (snapshot.exists()) {
+                            const data = snapshot.data();
+                            const incomingStamp = Number(data?.updatedAt) || 0;
+                            if (activeMutations > 0 && incomingStamp <= lastLocalStamp) return;
+
+                            applyRemoteState(data);
+
+                            if (isFirstSnapshotLoad) {
+                                clinicsList.forEach(c => {
+                                    lastAnnouncedMap[c.id] = c.currentTicketNumber || '';
+                                });
+                                isFirstSnapshotLoad = false;
+                            } else {
+                                clinicsList.forEach(c => {
+                                    const prev = lastAnnouncedMap[c.id] || '';
+                                    const curr = c.currentTicketNumber || '';
+                                    if (curr && curr !== prev && currentTab === 'display') {
+                                        enqueueClinicAnnouncement(c);
+                                    }
+                                    lastAnnouncedMap[c.id] = curr;
+                                });
+                            }
+
+                            renderHeader();
+                            renderActiveView();
+                        } else {
+                            await setDoc(queueDocRef, buildFirestorePayload());
+                        }
+                    }, (error) => {
+                        console.warn('خطأ في مزامنة Firestore:', error);
+                        isFirestoreReady = false;
+                        const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                        setSyncStatus(false, currentT.offlineStatus);
+                    });
+                } catch (err) {
+                    console.warn('تعذر الاتصال الفوري بـ Firestore (العمل بالوضع المحلي الآمن):', err);
+                    isFirestoreReady = false;
+                    const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                    setSyncStatus(false, currentT.offlineStatus);
+                }
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                updateClock();
+                setInterval(updateClock, 1000);
+                renderAll();
+                initFirebaseSync();
+            });
+        })();
+    </script>
+</body>
+</html>
