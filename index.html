@@ -2764,9 +2764,49 @@
                         ? [
                             Permission.read(Role.any()),
                             Permission.create(Role.any()),
-                            Permission.update(Role.any())
+                            Permission.update(Role.any()),
+                            Permission.delete(Role.any())
                         ]
                         : undefined;
+
+                    const getRowSafe = async () => {
+                        if (typeof databases.getRow === 'function') {
+                            return await databases.getRow({
+                                databaseId,
+                                tableId: collectionId,
+                                rowId: documentId
+                            });
+                        }
+                        return await databases.getDocument(databaseId, collectionId, documentId);
+                    };
+
+                    const updateRowSafe = async (docData) => {
+                        if (typeof databases.updateRow === 'function') {
+                            return await databases.updateRow({
+                                databaseId,
+                                tableId: collectionId,
+                                rowId: documentId,
+                                data: docData
+                            });
+                        }
+                        return await databases.updateDocument(databaseId, collectionId, documentId, docData);
+                    };
+
+                    const createRowSafe = async (docData) => {
+                        if (typeof databases.createRow === 'function') {
+                            return await databases.createRow({
+                                databaseId,
+                                tableId: collectionId,
+                                rowId: documentId,
+                                data: docData,
+                                permissions: docPermissions
+                            });
+                        }
+                        const createArgs = docPermissions
+                            ? [databaseId, collectionId, documentId, docData, docPermissions]
+                            : [databaseId, collectionId, documentId, docData];
+                        return await databases.createDocument(...createArgs);
+                    };
 
                     firestoreSaveFn = async (payload) => {
                         const serialized = JSON.stringify(payload);
@@ -2775,17 +2815,14 @@
                         };
                         try {
                             return await withTimeout(
-                                databases.updateDocument(databaseId, collectionId, documentId, docData),
+                                updateRowSafe(docData),
                                 7000,
                                 'Appwrite update timed out'
                             );
                         } catch (updateErr) {
-                            const createArgs = docPermissions
-                                ? [databaseId, collectionId, documentId, docData, docPermissions]
-                                : [databaseId, collectionId, documentId, docData];
                             try {
                                 return await withTimeout(
-                                    databases.createDocument(...createArgs),
+                                    createRowSafe(docData),
                                     7000,
                                     'Appwrite create timed out'
                                 );
@@ -2803,7 +2840,7 @@
                     const syncOnce = async () => {
                         try {
                             const res = await withTimeout(
-                                databases.getDocument(databaseId, collectionId, documentId),
+                                getRowSafe(),
                                 7000,
                                 'Appwrite getDocument timed out'
                             );
