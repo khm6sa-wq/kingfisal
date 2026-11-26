@@ -743,20 +743,36 @@
         }
 
         @media print {
-            body * {
-                visibility: hidden !important;
+            @page {
+                size: 80mm auto;
+                margin: 2mm;
             }
-            #thermal-receipt-area, #thermal-receipt-area * {
-                visibility: visible !important;
+            html, body {
+                width: 80mm !important;
+                min-height: 0 !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+            body > :not(#thermal-receipt-area) {
+                display: none !important;
             }
             #thermal-receipt-area {
-                position: fixed;
-                inset: 0;
-                width: 80mm;
-                margin: 0 auto;
-                padding: 8mm;
-                background: #fff;
-                color: #000;
+                display: block !important;
+                visibility: visible !important;
+                position: static !important;
+                width: 76mm !important;
+                max-width: 76mm !important;
+                margin: 0 auto !important;
+                padding: 4mm 2mm !important;
+                background: #fff !important;
+                color: #000 !important;
+                box-shadow: none !important;
+            }
+            #thermal-receipt-area * {
+                visibility: visible !important;
+                color: #000 !important;
             }
         }
     </style>
@@ -2020,15 +2036,37 @@
                 document.getElementById('receipt-patient-name').textContent = ticket.patientName ? `${t.receiptPatientPrefix} ${ticket.patientName}` : '';
                 document.getElementById('receipt-time').textContent = `${t.receiptTimePrefix} ${ticket.createdAt}`;
 
+                const receiptEl = document.getElementById('thermal-receipt-area');
+                if (receiptEl) {
+                    receiptEl.classList.remove('hidden');
+                }
+
                 try {
                     if (typeof require === 'function') {
                         const { ipcRenderer } = require('electron');
                         ipcRenderer.send('print-ticket-silent');
+                        if (receiptEl) {
+                            setTimeout(() => receiptEl.classList.add('hidden'), 300);
+                        }
                         return;
                     }
                 } catch (_) {}
 
+                const hideReceiptAfterPrint = () => {
+                    if (receiptEl) {
+                        receiptEl.classList.add('hidden');
+                    }
+                    window.removeEventListener('afterprint', hideReceiptAfterPrint);
+                };
+                window.addEventListener('afterprint', hideReceiptAfterPrint);
+
                 window.print();
+
+                setTimeout(() => {
+                    if (receiptEl && !receiptEl.classList.contains('hidden')) {
+                        receiptEl.classList.add('hidden');
+                    }
+                }, 1500);
             }
 
             function callNextPatient(clinicId) {
