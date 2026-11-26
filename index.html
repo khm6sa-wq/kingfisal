@@ -2707,14 +2707,14 @@
 
                     const account = new Account(client);
                     const databases = new Databases(client);
-                    const databaseId = 'queue_system';
-                    const collectionId = 'hospital_clinics_queue';
+                    const databaseId = '6b87da8a001f213df6dd';
+                    const collectionId = '6b87dab00018a18de490';
                     const documentId = 'main_state';
 
                     firestoreSaveFn = async (payload) => {
+                        const serialized = JSON.stringify(payload);
                         const docData = {
-                            payloadJson: JSON.stringify(payload),
-                            updatedAt: Number(payload.updatedAt) || Date.now()
+                            payload: serialized
                         };
                         try {
                             return await withTimeout(
@@ -2742,11 +2742,14 @@
                     const syncOnce = async () => {
                         try {
                             const res = await databases.getDocument(databaseId, collectionId, documentId);
-                            const raw = res && res.payloadJson ? JSON.parse(res.payloadJson) : res;
-                            const incomingStamp = Number(raw?.updatedAt || res?.updatedAt) || 0;
+                            const rawPayload = res && typeof res.payload === 'string' && res.payload.trim()
+                                ? JSON.parse(res.payload)
+                                : (res && res.payloadJson ? JSON.parse(res.payloadJson) : res);
+                            const docUpdatedAtMs = res && res.$updatedAt ? Date.parse(res.$updatedAt) : 0;
+                            const incomingStamp = Number(rawPayload?.updatedAt || docUpdatedAtMs || res?.updatedAt) || 0;
                             if (activeMutations > 0 && incomingStamp <= lastLocalStamp) return;
 
-                            applyRemoteState(raw);
+                            applyRemoteState(rawPayload);
 
                             if (isFirstSnapshotLoad) {
                                 clinicsList.forEach(c => {
