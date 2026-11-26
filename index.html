@@ -799,7 +799,7 @@
                     <h1 id="navbar-center-title" class="text-lg sm:text-xl font-black leading-tight">مستشفى الملك فيصل</h1>
                     <div class="flex items-center gap-2 text-xs font-bold text-sky-600 mt-0.5">
                         <span id="sync-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        <span id="sync-status-text">جاري الاتصال بـ Firestore...</span>
+                        <span id="sync-status-text">جاري الاتصال بـ Appwrite...</span>
                         <span class="text-sky-300">•</span>
                         <span id="live-clock" class="text-sky-700 font-semibold" dir="ltr">--:--</span>
                     </div>
@@ -1094,7 +1094,7 @@
                 ar: {
                     pageTitle: 'مستشفى الملك فيصل — نظام إدارة الطوابير',
                     defaultCenterName: 'مستشفى الملك فيصل',
-                    liveStatus: 'متصل بـ Firestore',
+                    liveStatus: 'متصل بـ Appwrite',
                     offlineStatus: 'وضع محلي (بانتظار الاتصال)',
                     tabReception: 'إصدار التذاكر',
                     tabControl: 'لوحة التحكم والإدارة',
@@ -1156,7 +1156,7 @@
                 en: {
                     pageTitle: 'King Faisal Hospital — Queue Management System',
                     defaultCenterName: 'King Faisal Hospital',
-                    liveStatus: 'Connected to Firestore',
+                    liveStatus: 'Connected to Appwrite',
                     offlineStatus: 'Local Mode (Awaiting Network)',
                     tabReception: 'Issue Tickets',
                     tabControl: 'Control & Admin',
@@ -1251,7 +1251,7 @@
             let currentLanguage = 'ar';
             let currentTab = 'reception';
             let focusedDisplayClinicId = '';
-            let isFirestoreReady = false;
+            let isAppwriteReady = false;
             let activeMutations = 0;
             let lastLocalStamp = 0;
             let lastRemoteUpdatedAt = 0;
@@ -1489,7 +1489,7 @@
                 }
             }
 
-            function buildFirestorePayload(stamp = Date.now()) {
+            function buildAppwritePayload(stamp = Date.now()) {
                 lastLocalStamp = stamp;
                 lastRemoteUpdatedAt = stamp;
                 return {
@@ -1539,7 +1539,7 @@
                 }
             }
 
-            function syncMutationWithFirestore(mutateLocalFn, rollbackSnap, options = {}) {
+            function syncMutationWithAppwrite(mutateLocalFn, rollbackSnap, options = {}) {
                 const stamp = Date.now();
                 activeMutations += 1;
                 mutateLocalFn();
@@ -1549,11 +1549,11 @@
                 }
                 renderActiveView();
 
-                const payload = buildFirestorePayload(stamp);
+                const payload = buildAppwritePayload(stamp);
                 if (typeof firestoreSaveFn === 'function') {
                     firestoreSaveFn(payload)
                         .catch((err) => {
-                            console.warn('تعذر مزامنة التغيير مع Firestore:', err);
+                            console.warn('تعذر مزامنة التغيير مع Appwrite:', err);
                         })
                         .finally(() => {
                             activeMutations = Math.max(0, activeMutations - 1);
@@ -1749,20 +1749,20 @@
 
                 clearTimeout(centerNameSaveTimer);
                 centerNameSaveTimer = setTimeout(() => {
-                    syncMutationWithFirestore(() => {}, snap);
+                    syncMutationWithAppwrite(() => {}, snap);
                 }, 350);
             }
 
             function setNavbarShape(shape) {
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     navbarShape = shape === 'gradient-banner' ? 'top-capsule' : shape;
                 }, snap, { renderHeaderToo: true });
             }
 
             function setInterfaceTheme(theme) {
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     interfaceTheme = theme;
                     applySkyColorIdea(theme);
                 }, snap, { renderHeaderToo: true });
@@ -1813,7 +1813,7 @@
             function setLanguage(lang) {
                 const snap = cloneSnapshot();
                 const nextLang = lang === 'en' ? 'en' : 'ar';
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     const prevDefaultName = UI_TEXTS[currentLanguage].defaultCenterName;
                     currentLanguage = nextLang;
                     if (centerName === prevDefaultName) {
@@ -1845,7 +1845,7 @@
                     floatingBtn.innerHTML = `<i class="fa-solid fa-compress"></i><span>${t.exitFullscreen}</span>`;
                 }
 
-                setSyncStatus(isFirestoreReady, isFirestoreReady ? t.liveStatus : t.offlineStatus);
+                setSyncStatus(isAppwriteReady, isAppwriteReady ? t.liveStatus : t.offlineStatus);
 
                 const tabReception = document.getElementById('tab-reception');
                 if (tabReception) tabReception.innerHTML = `<i class="fa-solid fa-ticket"></i><span>${t.tabReception}</span>`;
@@ -1944,7 +1944,7 @@
 
             function applyLogoDataUrl(dataUrl) {
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     customLogoDataUrl = dataUrl || '';
                 }, snap, { renderHeaderToo: true });
             }
@@ -2004,7 +2004,7 @@
                 const snap = cloneSnapshot();
                 let issuedTicket = null;
 
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     clinic.lastNumber = (Number(clinic.lastNumber) || 0) + 1;
                     const ticketNumber = `${clinic.prefix}-${clinic.lastNumber}`;
                     issuedTicket = {
@@ -2089,7 +2089,7 @@
                 const snap = cloneSnapshot();
                 let calledLabel = '';
 
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     const nextTicket = ticketsList[idx];
                     nextTicket.status = 'called';
                     clinic.currentTicketNumber = nextTicket.number;
@@ -2109,7 +2109,7 @@
                 if (!clinic) return;
 
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     if (clinic.currentTicketNumber) {
                         for (let i = 0; i < ticketsList.length; i++) {
                             if (
@@ -2135,7 +2135,7 @@
                 if (!clinic) return;
 
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     clinic.lastNumber = 0;
                     clinic.currentTicketNumber = '';
                     clinic.currentPatientName = '';
@@ -2148,7 +2148,7 @@
 
             function resetAllQueues() {
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     clinicsList.forEach(clinic => {
                         clinic.lastNumber = 0;
                         clinic.currentTicketNumber = '';
@@ -2171,7 +2171,7 @@
                 if (!name || !prefix) return;
 
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     const color = COLOR_KEYS[clinicsList.length % COLOR_KEYS.length];
                     const newId = `c-${Date.now()}`;
                     clinicsList.push({
@@ -2198,7 +2198,7 @@
                 }
 
                 const snap = cloneSnapshot();
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     clinicsList = clinicsList.filter(c => c.id !== clinicId);
                     ticketsList = ticketsList.filter(t => t.clinicId !== clinicId);
                     delete lastAnnouncedMap[clinicId];
@@ -2371,7 +2371,7 @@
                 const snap = cloneSnapshot();
                 let totalGenerated = 0;
 
-                syncMutationWithFirestore(() => {
+                syncMutationWithAppwrite(() => {
                     clinicsList.forEach(clinic => {
                         clinic.lastNumber = 0;
                         clinic.currentTicketNumber = '';
@@ -2693,52 +2693,60 @@
                 ]);
             }
 
-            async function initFirebaseSync() {
+            async function initAppwriteSync() {
                 try {
-                    const [{ initializeApp }, { getAuth, signInAnonymously }, { getFirestore, doc, setDoc, onSnapshot }] = await withTimeout(
-                        Promise.all([
-                            import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
-                            import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'),
-                            import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
-                        ]),
+                    const { Client, Account, Databases, ID } = await withTimeout(
+                        import('https://esm.sh/appwrite@17.0.0'),
                         5000,
-                        'Firebase SDK load timed out'
+                        'Appwrite SDK load timed out'
                     );
 
-                    const firebaseConfig = {
-                        apiKey: 'AIzaSyBph2u70HB77Pt7t_EkfZVy3kSgZFkYFqI',
-                        authDomain: 'king-faisal-queue.firebaseapp.com',
-                        databaseURL: 'https://king-faisal-queue-default-rtdb.europe-west1.firebasedatabase.app',
-                        projectId: 'king-faisal-queue',
-                        storageBucket: 'king-faisal-queue.firebasestorage.app',
-                        messagingSenderId: '976660384649',
-                        appId: '1:976660384649:web:9d6e661bda871475052f58',
-                        measurementId: 'G-FHG2CFE3W3'
+                    const client = new Client()
+                        .setEndpoint('https://fra.cloud.appwrite.io/v1')
+                        .setProject('king-faisal-queue');
+
+                    const account = new Account(client);
+                    const databases = new Databases(client);
+                    const databaseId = 'queue_system';
+                    const collectionId = 'hospital_clinics_queue';
+                    const documentId = 'main_state';
+
+                    firestoreSaveFn = async (payload) => {
+                        const docData = {
+                            payloadJson: JSON.stringify(payload),
+                            updatedAt: Number(payload.updatedAt) || Date.now()
+                        };
+                        try {
+                            return await withTimeout(
+                                databases.updateDocument(databaseId, collectionId, documentId, docData),
+                                6000,
+                                'Appwrite update timed out'
+                            );
+                        } catch (_) {
+                            return await withTimeout(
+                                databases.createDocument(databaseId, collectionId, documentId, docData),
+                                6000,
+                                'Appwrite create timed out'
+                            );
+                        }
                     };
 
-                    const app = initializeApp(firebaseConfig);
-                    const auth = getAuth(app);
-                    const db = getFirestore(app);
-                    const queueDocRef = doc(db, 'queues', 'hospital_clinics_queue');
+                    try {
+                        await withTimeout(account.createAnonymousSession(), 5000, 'Anonymous session timed out');
+                    } catch (_) {}
 
-                    firestoreSaveFn = (payload) => withTimeout(setDoc(queueDocRef, payload, { merge: true }), 6000, 'Firestore save timed out');
-
-                    await withTimeout(signInAnonymously(auth), 5000, 'Anonymous sign-in timed out');
-                    isFirestoreReady = true;
+                    isAppwriteReady = true;
                     const t = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                    setSyncStatus(true, t.liveStatus);
+                    setSyncStatus(true, t.liveStatus.replace('Appwrite', 'Appwrite'));
 
-                    onSnapshot(queueDocRef, async (snapshot) => {
-                        isFirestoreReady = true;
-                        const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                        setSyncStatus(true, currentT.liveStatus);
-
-                        if (snapshot.exists()) {
-                            const data = snapshot.data();
-                            const incomingStamp = Number(data?.updatedAt) || 0;
+                    const syncOnce = async () => {
+                        try {
+                            const res = await databases.getDocument(databaseId, collectionId, documentId);
+                            const raw = res && res.payloadJson ? JSON.parse(res.payloadJson) : res;
+                            const incomingStamp = Number(raw?.updatedAt || res?.updatedAt) || 0;
                             if (activeMutations > 0 && incomingStamp <= lastLocalStamp) return;
 
-                            applyRemoteState(data);
+                            applyRemoteState(raw);
 
                             if (isFirstSnapshotLoad) {
                                 clinicsList.forEach(c => {
@@ -2758,18 +2766,14 @@
 
                             renderHeader();
                             renderActiveView();
-                        } else {
-                            await setDoc(queueDocRef, buildFirestorePayload());
-                        }
-                    }, (error) => {
-                        console.warn('خطأ في مزامنة Firestore:', error);
-                        isFirestoreReady = false;
-                        const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                        setSyncStatus(false, currentT.offlineStatus);
-                    });
+                        } catch (_) {}
+                    };
+
+                    await syncOnce();
+                    setInterval(syncOnce, 2500);
                 } catch (err) {
-                    console.warn('تعذر الاتصال الفوري بـ Firestore (العمل بالوضع المحلي الآمن):', err);
-                    isFirestoreReady = false;
+                    console.warn('تعذر الاتصال الفوري بـ Appwrite (العمل بالوضع المحلي الآمن):', err);
+                    isAppwriteReady = false;
                     const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
                     setSyncStatus(false, currentT.offlineStatus);
                 }
@@ -2779,7 +2783,7 @@
                 updateClock();
                 setInterval(updateClock, 1000);
                 renderAll();
-                initFirebaseSync();
+                initAppwriteSync();
             });
         })();
     </script>
