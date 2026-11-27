@@ -2739,28 +2739,28 @@
             async function initAppwriteSync() {
                 try {
                     const appwriteMod = await withTimeout(
-                        import('https://esm.sh/appwrite@17.0.0'),
+                        import('https://esm.sh/appwrite'),
                         6000,
                         'Appwrite SDK load timed out'
                     );
                     const Client = appwriteMod.Client;
-                    const Account = appwriteMod.Account;
+                    const TablesDB = appwriteMod.TablesDB;
                     const Databases = appwriteMod.Databases;
                     const Permission = appwriteMod.Permission;
                     const Role = appwriteMod.Role;
-                    const ID = appwriteMod.ID;
 
                     const client = new Client()
                         .setEndpoint('https://fra.cloud.appwrite.io/v1')
                         .setProject('6b07d1ea002aa4cb5d4d');
 
-                    const account = new Account(client);
-                    const databases = new Databases(client);
-                    const databaseId = '6b87da8a001f213df6dd';
-                    const collectionId = '6b87dab00018a18de490';
-                    const documentId = 'main_state';
+                    const tablesDB = TablesDB ? new TablesDB(client) : null;
+                    const databases = Databases ? new Databases(client) : null;
 
-                    const docPermissions = Permission && Role
+                    const databaseId = '6b87da8a001f213df6dd';
+                    const tableId = '6b87dab00018a18de490';
+                    const rowId = 'main_state';
+
+                    const rowPermissions = Permission && Role
                         ? [
                             Permission.read(Role.any()),
                             Permission.create(Role.any()),
@@ -2770,79 +2770,94 @@
                         : undefined;
 
                     const getRowSafe = async () => {
-                        if (typeof databases.getRow === 'function') {
+                        if (tablesDB && typeof tablesDB.getRow === 'function') {
+                            return await tablesDB.getRow({
+                                databaseId,
+                                tableId,
+                                rowId
+                            });
+                        }
+                        if (databases && typeof databases.getRow === 'function') {
                             return await databases.getRow({
                                 databaseId,
-                                tableId: collectionId,
-                                rowId: documentId
+                                tableId,
+                                rowId
                             });
                         }
-                        return await databases.getDocument(databaseId, collectionId, documentId);
+                        return await databases.getDocument(databaseId, tableId, rowId);
                     };
 
-                    const updateRowSafe = async (docData) => {
-                        if (typeof databases.updateRow === 'function') {
+                    const updateRowSafe = async (rowData) => {
+                        if (tablesDB && typeof tablesDB.updateRow === 'function') {
+                            return await tablesDB.updateRow({
+                                databaseId,
+                                tableId,
+                                rowId,
+                                data: rowData
+                            });
+                        }
+                        if (databases && typeof databases.updateRow === 'function') {
                             return await databases.updateRow({
                                 databaseId,
-                                tableId: collectionId,
-                                rowId: documentId,
-                                data: docData
+                                tableId,
+                                rowId,
+                                data: rowData
                             });
                         }
-                        return await databases.updateDocument(databaseId, collectionId, documentId, docData);
+                        return await databases.updateDocument(databaseId, tableId, rowId, rowData);
                     };
 
-                    const createRowSafe = async (docData) => {
-                        if (typeof databases.createRow === 'function') {
-                            return await databases.createRow({
+                    const createRowSafe = async (rowData) => {
+                        if (tablesDB && typeof tablesDB.createRow === 'function') {
+                            return await tablesDB.createRow({
                                 databaseId,
-                                tableId: collectionId,
-                                rowId: documentId,
-                                data: docData,
-                                permissions: docPermissions
+                                tableId,
+                                rowId,
+                                data: rowData,
+                                permissions: rowPermissions
                             });
                         }
-                        const createArgs = docPermissions
-                            ? [databaseId, collectionId, documentId, docData, docPermissions]
-                            : [databaseId, collectionId, documentId, docData];
+                        if (databases && typeof databases.createRow === 'function') {
+                            return await databases.createRow({
+                                databaseId,
+                                tableId,
+                                rowId,
+                                data: rowData,
+                                permissions: rowPermissions
+                            });
+                        }
+                        const createArgs = rowPermissions
+                            ? [databaseId, tableId, rowId, rowData, rowPermissions]
+                            : [databaseId, tableId, rowId, rowData];
                         return await databases.createDocument(...createArgs);
                     };
 
                     firestoreSaveFn = async (payload) => {
                         const serialized = JSON.stringify(payload);
-                        const docData = {
+                        const rowData = {
                             payload: serialized
                         };
                         try {
                             return await withTimeout(
-                                updateRowSafe(docData),
+                                updateRowSafe(rowData),
                                 7000,
-                                'Appwrite update timed out'
+                                'Appwrite updateRow timed out'
                             );
                         } catch (updateErr) {
-                            try {
-                                return await withTimeout(
-                                    createRowSafe(docData),
-                                    7000,
-                                    'Appwrite create timed out'
-                                );
-                            } catch (createErr) {
-                                console.warn('Appwrite save error:', updateErr, createErr);
-                                throw createErr;
-                            }
+                            return await withTimeout(
+                                createRowSafe(rowData),
+                                7000,
+                                'Appwrite createRow timed out'
+                            );
                         }
                     };
-
-                    try {
-                        await withTimeout(account.createAnonymousSession(), 5000, 'Anonymous session timed out');
-                    } catch (_) {}
 
                     const syncOnce = async () => {
                         try {
                             const res = await withTimeout(
                                 getRowSafe(),
                                 7000,
-                                'Appwrite getDocument timed out'
+                                'Appwrite getRow timed out'
                             );
                             isAppwriteReady = true;
                             const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
@@ -2851,8 +2866,6 @@
                             let rawPayload = null;
                             if (res && typeof res.payload === 'string' && res.payload.trim()) {
                                 rawPayload = JSON.parse(res.payload);
-                            } else if (res && typeof res.payloadJson === 'string' && res.payloadJson.trim()) {
-                                rawPayload = JSON.parse(res.payloadJson);
                             } else if (res && typeof res === 'object') {
                                 rawPayload = res;
                             }
@@ -2887,24 +2900,9 @@
                             renderHeader();
                             renderActiveView();
                         } catch (syncErr) {
-                            const errMsg = String(syncErr?.message || '');
-                            const isNotFound = errMsg.includes('404') || errMsg.toLowerCase().includes('not found');
-                            if (isNotFound) {
-                                isAppwriteReady = true;
-                                const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                                setSyncStatus(true, currentT.liveStatus);
-                                const cached = loadLocalCache();
-                                if (cached && (Array.isArray(cached.clinicsList) || Array.isArray(cached.ticketsList))) {
-                                    applyRemoteState(cached, { force: true });
-                                    renderHeader();
-                                    renderActiveView();
-                                    firestoreSaveFn(buildAppwritePayload(Number(cached.updatedAt) || Date.now())).catch(() => {});
-                                }
-                            } else {
-                                isAppwriteReady = false;
-                                const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                                setSyncStatus(false, currentT.offlineStatus);
-                            }
+                            isAppwriteReady = false;
+                            const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                            setSyncStatus(false, currentT.offlineStatus);
                             isFirstSnapshotLoad = false;
                         }
                     };
@@ -2915,7 +2913,10 @@
                     if (typeof client.subscribe === 'function') {
                         try {
                             client.subscribe(
-                                `databases.${databaseId}.collections.${collectionId}.documents.${documentId}`,
+                                [
+                                    `databases.${databaseId}.tables.${tableId}.rows.${rowId}`,
+                                    `databases.${databaseId}.collections.${tableId}.documents.${rowId}`
+                                ],
                                 () => {
                                     syncOnce();
                                 }
