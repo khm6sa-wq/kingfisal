@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مستشفى الملك فيصل — نظام إدارة الطوابير</title>
+    <link rel="icon" href="data:," />
     <script>
         (function () {
             const css = `
@@ -231,6 +232,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" /></noscript>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@17.0.0"></script>
     <style>
         body {
             font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -1464,18 +1466,6 @@
                     currentLanguage,
                     lastRemoteUpdatedAt
                 };
-            }
-
-            function restoreSnapshot(snap) {
-                clinicsList = snap.clinicsList;
-                ticketsList = snap.ticketsList;
-                centerName = snap.centerName;
-                customLogoDataUrl = snap.customLogoDataUrl;
-                navbarShape = snap.navbarShape;
-                interfaceTheme = snap.interfaceTheme;
-                currentLanguage = snap.currentLanguage;
-                lastRemoteUpdatedAt = snap.lastRemoteUpdatedAt;
-                renderActiveView();
             }
 
             function setSyncStatus(connected, labelText) {
@@ -2738,12 +2728,17 @@
 
             async function initAppwriteSync() {
                 try {
-                    const appwriteMod = await withTimeout(
-                        import('https://esm.sh/appwrite'),
-                        6000,
-                        'Appwrite SDK load timed out'
-                    );
+                    let appwriteMod = window.Appwrite || null;
+                    if (!appwriteMod) {
+                        appwriteMod = await withTimeout(
+                            import('https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm'),
+                            6000,
+                            'Appwrite SDK load timed out'
+                        );
+                    }
+
                     const Client = appwriteMod.Client;
+                    const Account = appwriteMod.Account;
                     const TablesDB = appwriteMod.TablesDB;
                     const Databases = appwriteMod.Databases;
                     const Permission = appwriteMod.Permission;
@@ -2753,6 +2748,7 @@
                         .setEndpoint('https://fra.cloud.appwrite.io/v1')
                         .setProject('6b07d1ea002aa4cb5d4d');
 
+                    const account = Account ? new Account(client) : null;
                     const tablesDB = TablesDB ? new TablesDB(client) : null;
                     const databases = Databases ? new Databases(client) : null;
 
@@ -2852,6 +2848,12 @@
                         }
                     };
 
+                    if (account && typeof account.createAnonymousSession === 'function') {
+                        try {
+                            await withTimeout(account.createAnonymousSession(), 4000, 'Anonymous session timed out');
+                        } catch (_) {}
+                    }
+
                     const syncOnce = async () => {
                         try {
                             const res = await withTimeout(
@@ -2900,6 +2902,13 @@
                             renderHeader();
                             renderActiveView();
                         } catch (syncErr) {
+                            const errMsg = String(syncErr?.message || '');
+                            const isNotFound = syncErr?.code === 404 || errMsg.includes('404') || errMsg.toLowerCase().includes('not found');
+                            if (isNotFound && typeof firestoreSaveFn === 'function') {
+                                try {
+                                    await firestoreSaveFn(buildAppwritePayload(Date.now()));
+                                } catch (_) {}
+                            }
                             isAppwriteReady = false;
                             const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
                             setSyncStatus(false, currentT.offlineStatus);
