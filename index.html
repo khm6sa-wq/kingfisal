@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>مستشفى الملك فيصل — نظام إدارة الطوابير</title>
-    <link rel="icon" href="data:," />
     <script>
         (function () {
             const css = `
@@ -232,7 +231,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" /></noscript>
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@17.0.0"></script>
     <style>
         body {
             font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
@@ -240,6 +238,7 @@
             transition: background 0.3s ease, color 0.3s ease;
         }
 
+        /* أنماط أشكال الشريط العلوي */
         #main-navbar.navbar-top-capsule {
             border-radius: 1.5rem;
             margin: 0.75rem auto;
@@ -305,6 +304,7 @@
             box-shadow: 0 18px 38px -10px rgba(2, 132, 199, 0.16);
         }
 
+        /* أنماط الواجهة المتنوعة بالألوان السماوية والأبيض */
         body.theme-medical-blue,
         body.theme-modern,
         body.theme-medical-mint,
@@ -691,6 +691,7 @@
             color: #ffffff !important;
         }
 
+        /* وضع ملء الشاشة وإخفاء باقي عناصر الواجهة */
         body.is-fullscreen-mode #main-navbar,
         body.is-fullscreen-mode #toast-banner,
         body.is-fullscreen-mode #clinic-settings-modal {
@@ -798,7 +799,7 @@
                     <h1 id="navbar-center-title" class="text-lg sm:text-xl font-black leading-tight">مستشفى الملك فيصل</h1>
                     <div class="flex items-center gap-2 text-xs font-bold text-sky-600 mt-0.5">
                         <span id="sync-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
-                        <span id="sync-status-text">جاري الاتصال بـ Appwrite...</span>
+                        <span id="sync-status-text">جاري الاتصال بـ Firestore...</span>
                         <span class="text-sky-300">•</span>
                         <span id="live-clock" class="text-sky-700 font-semibold" dir="ltr">--:--</span>
                     </div>
@@ -1093,7 +1094,7 @@
                 ar: {
                     pageTitle: 'مستشفى الملك فيصل — نظام إدارة الطوابير',
                     defaultCenterName: 'مستشفى الملك فيصل',
-                    liveStatus: 'متصل بـ Appwrite',
+                    liveStatus: 'متصل بـ Firestore',
                     offlineStatus: 'وضع محلي (بانتظار الاتصال)',
                     tabReception: 'إصدار التذاكر',
                     tabControl: 'لوحة التحكم والإدارة',
@@ -1155,7 +1156,7 @@
                 en: {
                     pageTitle: 'King Faisal Hospital — Queue Management System',
                     defaultCenterName: 'King Faisal Hospital',
-                    liveStatus: 'Connected to Appwrite',
+                    liveStatus: 'Connected to Firestore',
                     offlineStatus: 'Local Mode (Awaiting Network)',
                     tabReception: 'Issue Tickets',
                     tabControl: 'Control & Admin',
@@ -1224,6 +1225,8 @@
                 'sky-top-accent'
             ];
 
+            const LOCAL_CACHE_KEY = 'kfh_clinics_firebase_cache_v1';
+
             function mergeDefaultClinics(rawClinics) {
                 const base = Array.isArray(rawClinics) && rawClinics.length > 0
                     ? rawClinics.map(c => ({ ...c }))
@@ -1250,13 +1253,12 @@
             let currentLanguage = 'ar';
             let currentTab = 'reception';
             let focusedDisplayClinicId = '';
-            let isAppwriteReady = false;
+            let isFirestoreReady = false;
             let activeMutations = 0;
             let lastLocalStamp = 0;
             let lastRemoteUpdatedAt = 0;
             let centerNameSaveTimer = null;
-            let firestoreSaveFn = null;
-            let skipAutoCreateUntil = 0;
+            let firestoreTransactionFn = null;
             window.focusedClinicControlId = '';
 
             let isVoiceEnabled = true;
@@ -1265,6 +1267,27 @@
             const speechQueue = [];
             let isSpeakingNow = false;
             let currentAudioElement = null;
+
+            function saveLocalCache(data) {
+                try {
+                    if (!data || typeof data !== 'object') return;
+                    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
+                        ...data,
+                        updatedAt: Number(data.updatedAt) || Date.now()
+                    }));
+                } catch (_) {}
+            }
+
+            function loadLocalCache() {
+                try {
+                    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+                    if (!raw) return null;
+                    const parsed = JSON.parse(raw);
+                    return parsed && typeof parsed === 'object' ? parsed : null;
+                } catch (_) {
+                    return null;
+                }
+            }
 
             function stopCurrentNeuralAudio() {
                 speechQueue.length = 0;
@@ -1477,12 +1500,12 @@
                 }
             }
 
-            function buildAppwritePayload(stamp = Date.now()) {
+            function buildFirestorePayload(stamp = Date.now()) {
                 lastLocalStamp = stamp;
                 lastRemoteUpdatedAt = stamp;
                 return {
-                    clinicsList,
-                    ticketsList,
+                    clinicsList: clinicsList.map(c => ({ ...c })),
+                    ticketsList: ticketsList.map(t => ({ ...t })),
                     centerName,
                     customLogoDataUrl,
                     navbarShape,
@@ -1492,36 +1515,13 @@
                 };
             }
 
-            const LOCAL_CACHE_KEY = 'kfh_queue_state_cache_v1';
-
-            function saveLocalCache(data) {
-                try {
-                    if (!data || typeof data !== 'object') return;
-                    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
-                        ...data,
-                        updatedAt: Number(data.updatedAt) || Date.now()
-                    }));
-                } catch (_) {}
-            }
-
-            function loadLocalCache() {
-                try {
-                    const raw = localStorage.getItem(LOCAL_CACHE_KEY);
-                    if (!raw) return null;
-                    const parsed = JSON.parse(raw);
-                    return parsed && typeof parsed === 'object' ? parsed : null;
-                } catch (_) {
-                    return null;
-                }
-            }
-
             function applyRemoteState(data, options = {}) {
                 if (!data || typeof data !== 'object') return;
                 const forceApply = Boolean(options.force);
                 const incomingStamp = Number(data.updatedAt) || 0;
                 if (!forceApply) {
-                    if (activeMutations > 0 && incomingStamp && incomingStamp <= lastLocalStamp) return;
-                    if (lastRemoteUpdatedAt && incomingStamp && incomingStamp < lastRemoteUpdatedAt) return;
+                    if (activeMutations > 0 && incomingStamp && incomingStamp < lastLocalStamp) return;
+                    if (incomingStamp && incomingStamp < lastRemoteUpdatedAt) return;
                 }
                 if (incomingStamp) {
                     lastRemoteUpdatedAt = Math.max(lastRemoteUpdatedAt, incomingStamp);
@@ -1538,6 +1538,7 @@
                 if (data.currentLanguage === 'en' || data.currentLanguage === 'ar') {
                     currentLanguage = data.currentLanguage;
                 }
+
                 saveLocalCache({
                     clinicsList,
                     ticketsList,
@@ -1565,33 +1566,43 @@
                 }
             }
 
-            function syncMutationWithAppwrite(mutateLocalFn, rollbackSnap, options = {}) {
+            async function executeStateTransaction(mutatorFn, options = {}) {
                 const stamp = Date.now();
                 activeMutations += 1;
-                mutateLocalFn();
+                let txResult = null;
 
-                if (options.renderHeaderToo) {
-                    renderHeader();
-                }
-                renderActiveView();
-
-                const payload = buildAppwritePayload(stamp);
-                saveLocalCache(payload);
-                if (typeof firestoreSaveFn === 'function') {
-                    firestoreSaveFn(payload)
-                        .then(() => {
-                            setSyncStatus(true, (UI_TEXTS[currentLanguage] || UI_TEXTS.ar).liveStatus);
-                        })
-                        .catch((err) => {
-                            console.warn('تعذر مزامنة التغيير مع Appwrite:', err);
-                            setSyncStatus(false, (UI_TEXTS[currentLanguage] || UI_TEXTS.ar).offlineStatus);
-                        })
-                        .finally(() => {
-                            activeMutations = Math.max(0, activeMutations - 1);
+                try {
+                    if (typeof firestoreTransactionFn === 'function') {
+                        txResult = await firestoreTransactionFn((remoteData) => {
+                            if (remoteData && (Array.isArray(remoteData.clinicsList) || Array.isArray(remoteData.ticketsList))) {
+                                applyRemoteState(remoteData, { force: true });
+                            }
+                            const localResult = mutatorFn();
+                            const payload = buildFirestorePayload(stamp);
+                            saveLocalCache(payload);
+                            return { payload, localResult };
                         });
-                } else {
+                    } else {
+                        txResult = mutatorFn();
+                        const payload = buildFirestorePayload(stamp);
+                        saveLocalCache(payload);
+                    }
+                } catch (err) {
+                    console.warn('تعذرت المعاملة الفورية مع Firestore، تم الحفظ محلياً:', err);
+                    if (txResult === null) {
+                        txResult = mutatorFn();
+                    }
+                    const payload = buildFirestorePayload(stamp);
+                    saveLocalCache(payload);
+                } finally {
                     activeMutations = Math.max(0, activeMutations - 1);
+                    if (options.renderHeaderToo) {
+                        renderHeader();
+                    }
+                    renderActiveView();
                 }
+
+                return txResult;
             }
 
             function getClinicDisplayName(clinic) {
@@ -1773,30 +1784,31 @@
             });
 
             function updateCenterName(val) {
-                const snap = cloneSnapshot();
-                centerName = val.trim() || 'مستشفى الملك فيصل';
+                const nextName = val.trim() || 'مستشفى الملك فيصل';
+                centerName = nextName;
                 const titleEl = document.getElementById('navbar-center-title');
                 if (titleEl) titleEl.textContent = centerName;
 
                 clearTimeout(centerNameSaveTimer);
                 centerNameSaveTimer = setTimeout(() => {
-                    syncMutationWithAppwrite(() => {}, snap);
+                    executeStateTransaction(() => {
+                        centerName = nextName;
+                    });
                 }, 350);
             }
 
             function setNavbarShape(shape) {
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
-                    navbarShape = shape === 'gradient-banner' ? 'top-capsule' : shape;
-                }, snap, { renderHeaderToo: true });
+                const nextShape = shape === 'gradient-banner' ? 'top-capsule' : shape;
+                executeStateTransaction(() => {
+                    navbarShape = nextShape;
+                }, { renderHeaderToo: true });
             }
 
             function setInterfaceTheme(theme) {
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
+                executeStateTransaction(() => {
                     interfaceTheme = theme;
                     applySkyColorIdea(theme);
-                }, snap, { renderHeaderToo: true });
+                }, { renderHeaderToo: true });
                 showToast(currentLanguage === 'en' ? 'Interface theme updated' : 'تم تغيير نمط الواجهة');
             }
 
@@ -1842,15 +1854,14 @@
             }
 
             function setLanguage(lang) {
-                const snap = cloneSnapshot();
                 const nextLang = lang === 'en' ? 'en' : 'ar';
-                syncMutationWithAppwrite(() => {
+                executeStateTransaction(() => {
                     const prevDefaultName = UI_TEXTS[currentLanguage].defaultCenterName;
                     currentLanguage = nextLang;
                     if (centerName === prevDefaultName) {
                         centerName = UI_TEXTS[nextLang].defaultCenterName;
                     }
-                }, snap, { renderHeaderToo: true });
+                }, { renderHeaderToo: true });
                 showToast(nextLang === 'en' ? 'Language switched to English' : 'تم تغيير اللغة إلى العربية');
             }
 
@@ -1876,7 +1887,7 @@
                     floatingBtn.innerHTML = `<i class="fa-solid fa-compress"></i><span>${t.exitFullscreen}</span>`;
                 }
 
-                setSyncStatus(isAppwriteReady, isAppwriteReady ? t.liveStatus : t.offlineStatus);
+                setSyncStatus(isFirestoreReady, isFirestoreReady ? t.liveStatus : t.offlineStatus);
 
                 const tabReception = document.getElementById('tab-reception');
                 if (tabReception) tabReception.innerHTML = `<i class="fa-solid fa-ticket"></i><span>${t.tabReception}</span>`;
@@ -1974,10 +1985,9 @@
             }
 
             function applyLogoDataUrl(dataUrl) {
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
+                executeStateTransaction(() => {
                     customLogoDataUrl = dataUrl || '';
-                }, snap, { renderHeaderToo: true });
+                }, { renderHeaderToo: true });
             }
 
             function handleLogoFileSelected(event) {
@@ -2026,19 +2036,17 @@
                 showToast('تمت إزالة صورة المركز');
             }
 
-            function issueTicketForClinic(clinicId) {
-                const clinic = clinicsList.find(c => c.id === clinicId);
-                if (!clinic) return;
-
+            async function issueTicketForClinic(clinicId) {
                 const nameInput = document.getElementById('patient-name-input');
                 const patientName = (nameInput && nameInput.value.trim()) || '';
-                const snap = cloneSnapshot();
-                let issuedTicket = null;
 
-                syncMutationWithAppwrite(() => {
+                const result = await executeStateTransaction(() => {
+                    const clinic = clinicsList.find(c => c.id === clinicId);
+                    if (!clinic) return null;
+
                     clinic.lastNumber = (Number(clinic.lastNumber) || 0) + 1;
                     const ticketNumber = `${clinic.prefix}-${clinic.lastNumber}`;
-                    issuedTicket = {
+                    const issuedTicket = {
                         id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                         clinicId: clinic.id,
                         clinicName: clinic.name,
@@ -2049,12 +2057,13 @@
                         createdAt: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })
                     };
                     ticketsList.unshift(issuedTicket);
-                    if (nameInput) nameInput.value = '';
-                }, snap);
+                    return { issuedTicket, clinic: { ...clinic } };
+                });
 
-                if (issuedTicket) {
-                    showToast(`تم إصدار التذكرة ${issuedTicket.number} لـ ${clinic.name}`);
-                    setTimeout(() => printTicketReceipt(issuedTicket, clinic), 80);
+                if (result && result.issuedTicket) {
+                    if (nameInput) nameInput.value = '';
+                    showToast(`تم إصدار التذكرة ${result.issuedTicket.number} لـ ${result.clinic.name}`);
+                    setTimeout(() => printTicketReceipt(result.issuedTicket, result.clinic), 80);
                 }
             }
 
@@ -2100,47 +2109,47 @@
                 }, 1500);
             }
 
-            function callNextPatient(clinicId) {
-                const clinic = clinicsList.find(c => c.id === clinicId);
-                if (!clinic) return;
+            async function callNextPatient(clinicId) {
+                const result = await executeStateTransaction(() => {
+                    const clinic = clinicsList.find(c => c.id === clinicId);
+                    if (!clinic) return { empty: true, clinicName: '' };
 
-                let idx = -1;
-                for (let i = ticketsList.length - 1; i >= 0; i--) {
-                    if (ticketsList[i].clinicId === clinicId && ticketsList[i].status === 'waiting') {
-                        idx = i;
-                        break;
+                    let idx = -1;
+                    for (let i = ticketsList.length - 1; i >= 0; i--) {
+                        if (ticketsList[i].clinicId === clinicId && ticketsList[i].status === 'waiting') {
+                            idx = i;
+                            break;
+                        }
                     }
-                }
 
-                if (idx === -1) {
-                    showToast(`لا يوجد مراجعون في انتظار ${clinic.name}`, true);
-                    return;
-                }
+                    if (idx === -1) {
+                        return { empty: true, clinicName: clinic.name };
+                    }
 
-                const snap = cloneSnapshot();
-                let calledLabel = '';
-
-                syncMutationWithAppwrite(() => {
                     const nextTicket = ticketsList[idx];
                     nextTicket.status = 'called';
                     clinic.currentTicketNumber = nextTicket.number;
                     clinic.currentPatientName = nextTicket.patientName || '';
-                    calledLabel = nextTicket.patientName ? `${nextTicket.number} (${nextTicket.patientName})` : nextTicket.number;
-                }, snap);
+                    const calledLabel = nextTicket.patientName ? `${nextTicket.number} (${nextTicket.patientName})` : nextTicket.number;
+                    return { empty: false, calledLabel, clinic: { ...clinic } };
+                });
 
-                if (calledLabel) {
-                    lastAnnouncedMap[clinic.id] = clinic.currentTicketNumber;
-                    enqueueClinicAnnouncement(clinic);
-                    showToast(`تم استدعاء ${calledLabel} إلى ${clinic.name}`);
+                if (!result || result.empty) {
+                    const targetClinic = clinicsList.find(c => c.id === clinicId);
+                    showToast(`لا يوجد مراجعون في انتظار ${result?.clinicName || targetClinic?.name || ''}`, true);
+                    return;
                 }
+
+                lastAnnouncedMap[result.clinic.id] = result.clinic.currentTicketNumber;
+                enqueueClinicAnnouncement(result.clinic);
+                showToast(`تم استدعاء ${result.calledLabel} إلى ${result.clinic.name}`);
             }
 
-            function completeCurrentTicket(clinicId) {
-                const clinic = clinicsList.find(c => c.id === clinicId);
-                if (!clinic) return;
+            async function completeCurrentTicket(clinicId) {
+                const result = await executeStateTransaction(() => {
+                    const clinic = clinicsList.find(c => c.id === clinicId);
+                    if (!clinic) return null;
 
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
                     if (clinic.currentTicketNumber) {
                         for (let i = 0; i < ticketsList.length; i++) {
                             if (
@@ -2155,31 +2164,35 @@
                     }
                     clinic.currentTicketNumber = '';
                     clinic.currentPatientName = '';
-                }, snap);
+                    return { clinicId: clinic.id, clinicName: clinic.name };
+                });
 
-                lastAnnouncedMap[clinic.id] = '';
-                showToast(`تم إنهاء المراجع الحالي في ${clinic.name}`);
+                if (result) {
+                    lastAnnouncedMap[result.clinicId] = '';
+                    showToast(`تم إنهاء المراجع الحالي في ${result.clinicName}`);
+                }
             }
 
-            function resetClinicQueue(clinicId) {
-                const clinic = clinicsList.find(c => c.id === clinicId);
-                if (!clinic) return;
+            async function resetClinicQueue(clinicId) {
+                const result = await executeStateTransaction(() => {
+                    const clinic = clinicsList.find(c => c.id === clinicId);
+                    if (!clinic) return null;
 
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
                     clinic.lastNumber = 0;
                     clinic.currentTicketNumber = '';
                     clinic.currentPatientName = '';
                     ticketsList = ticketsList.filter(tItem => tItem.clinicId !== clinicId);
-                }, snap);
+                    return { ...clinic };
+                });
 
-                lastAnnouncedMap[clinic.id] = '';
-                showToast(currentLanguage === 'en' ? `Reset queue for ${getClinicDisplayName(clinic)}` : `تم تصفير طابور ${getClinicDisplayName(clinic)}`);
+                if (result) {
+                    lastAnnouncedMap[result.id] = '';
+                    showToast(currentLanguage === 'en' ? `Reset queue for ${getClinicDisplayName(result)}` : `تم تصفير طابور ${getClinicDisplayName(result)}`);
+                }
             }
 
-            function resetAllQueues() {
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
+            async function resetAllQueues() {
+                await executeStateTransaction(() => {
                     clinicsList.forEach(clinic => {
                         clinic.lastNumber = 0;
                         clinic.currentTicketNumber = '';
@@ -2187,12 +2200,12 @@
                         lastAnnouncedMap[clinic.id] = '';
                     });
                     ticketsList = [];
-                }, snap);
+                });
 
                 showToast(currentLanguage === 'en' ? 'All queues have been reset' : 'تم تصفير جميع الطوابير');
             }
 
-            function addNewClinic(event) {
+            async function addNewClinic(event) {
                 event.preventDefault();
                 const nameInput = document.getElementById('new-clinic-name');
                 const prefixInput = document.getElementById('new-clinic-prefix');
@@ -2201,8 +2214,7 @@
 
                 if (!name || !prefix) return;
 
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
+                await executeStateTransaction(() => {
                     const color = COLOR_KEYS[clinicsList.length % COLOR_KEYS.length];
                     const newId = `c-${Date.now()}`;
                     clinicsList.push({
@@ -2215,21 +2227,21 @@
                         currentPatientName: ''
                     });
                     lastAnnouncedMap[newId] = '';
-                    nameInput.value = '';
-                    prefixInput.value = '';
-                }, snap);
+                });
 
+                nameInput.value = '';
+                prefixInput.value = '';
                 showToast(`تمت إضافة ${name}`);
             }
 
-            function deleteClinic(clinicId) {
+            async function deleteClinic(clinicId) {
                 if (clinicsList.length <= 1) {
                     showToast('يجب الإبقاء على عيادة واحدة على الأقل', true);
                     return;
                 }
 
-                const snap = cloneSnapshot();
-                syncMutationWithAppwrite(() => {
+                await executeStateTransaction(() => {
+                    if (clinicsList.length <= 1) return;
                     clinicsList = clinicsList.filter(c => c.id !== clinicId);
                     ticketsList = ticketsList.filter(t => t.clinicId !== clinicId);
                     delete lastAnnouncedMap[clinicId];
@@ -2239,7 +2251,7 @@
                     if (focusedDisplayClinicId === clinicId) {
                         exitFocusedClinicDisplay();
                     }
-                }, snap);
+                });
 
                 showToast('تم حذف العيادة');
             }
@@ -2398,11 +2410,8 @@
                 `).join('');
             }
 
-            function runQueueSystemTest() {
-                const snap = cloneSnapshot();
-                let totalGenerated = 0;
-
-                syncMutationWithAppwrite(() => {
+            async function runQueueSystemTest() {
+                const totalGenerated = await executeStateTransaction(() => {
                     clinicsList.forEach(clinic => {
                         clinic.lastNumber = 0;
                         clinic.currentTicketNumber = '';
@@ -2445,8 +2454,8 @@
                         }
                     });
 
-                    totalGenerated = ticketsList.length;
-                }, snap);
+                    return ticketsList.length;
+                });
 
                 showToast(
                     currentLanguage === 'en'
@@ -2724,173 +2733,64 @@
                 ]);
             }
 
-            async function initAppwriteSync() {
+            async function initFirebaseSync() {
                 try {
-                    let appwriteMod = window.Appwrite || null;
-                    if (!appwriteMod) {
-                        appwriteMod = await withTimeout(
-                            import('https://cdn.jsdelivr.net/npm/appwrite@17.0.0/+esm'),
-                            6000,
-                            'Appwrite SDK load timed out'
+                    const [{ initializeApp }, { getAuth, signInAnonymously }, { getFirestore, doc, runTransaction, onSnapshot }] = await withTimeout(
+                        Promise.all([
+                            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
+                            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
+                            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
+                        ]),
+                        6000,
+                        'Firebase SDK load timed out'
+                    );
+
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyBtLu7ICGKWJDHIuPBM4h1cZmkDsxjylxo",
+                        authDomain: "hospital-ba989.firebaseapp.com",
+                        projectId: "hospital-ba989",
+                        storageBucket: "hospital-ba989.firebasestorage.app",
+                        messagingSenderId: "30608387919",
+                        appId: "1:30608387919:web:ee0f83efabc514e5ff1f3a",
+                        measurementId: "G-6R34PWFVWK"
+                    };
+
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    const db = getFirestore(app);
+                    const queueDocRef = doc(db, "queues", "king_faisal_clinics_queue");
+
+                    signInAnonymously(auth).catch(() => {});
+
+                    firestoreTransactionFn = async (buildNextPayloadFn) => {
+                        let outLocalResult = null;
+                        await withTimeout(
+                            runTransaction(db, async (transaction) => {
+                                const docSnap = await transaction.get(queueDocRef);
+                                const remoteData = docSnap.exists() ? docSnap.data() : null;
+                                const stepResult = buildNextPayloadFn(remoteData);
+                                outLocalResult = stepResult.localResult;
+                                transaction.set(queueDocRef, stepResult.payload);
+                            }),
+                            7000,
+                            'Firestore transaction timed out'
                         );
-                    }
-
-                    const Client = appwriteMod.Client;
-                    const Account = appwriteMod.Account;
-                    const TablesDB = appwriteMod.TablesDB;
-                    const Databases = appwriteMod.Databases;
-                    const Permission = appwriteMod.Permission;
-                    const Role = appwriteMod.Role;
-
-                    const client = new Client()
-                        .setEndpoint('https://fra.cloud.appwrite.io/v1')
-                        .setProject('6b07d1ea002aa4cb5d4d');
-
-                    const account = Account ? new Account(client) : null;
-                    const tablesDB = TablesDB ? new TablesDB(client) : null;
-                    const databases = Databases ? new Databases(client) : null;
-
-                    const databaseId = '6b87da8a001f213df6dd';
-                    const tableId = '6b07dab00018a10de490';
-                    const rowId = 'main_state';
-
-                    const rowPermissions = Permission && Role
-                        ? [
-                            Permission.read(Role.any()),
-                            Permission.create(Role.any()),
-                            Permission.update(Role.any()),
-                            Permission.delete(Role.any())
-                        ]
-                        : undefined;
-
-                    const getRowSafe = async () => {
-                        if (tablesDB && typeof tablesDB.getRow === 'function') {
-                            return await tablesDB.getRow({
-                                databaseId,
-                                tableId,
-                                rowId
-                            });
-                        }
-                        if (databases && typeof databases.getRow === 'function') {
-                            return await databases.getRow({
-                                databaseId,
-                                tableId,
-                                rowId
-                            });
-                        }
-                        return await databases.getDocument(databaseId, tableId, rowId);
+                        isFirestoreReady = true;
+                        setSyncStatus(true, (UI_TEXTS[currentLanguage] || UI_TEXTS.ar).liveStatus);
+                        return outLocalResult;
                     };
 
-                    const updateRowSafe = async (rowData) => {
-                        if (tablesDB && typeof tablesDB.updateRow === 'function') {
-                            return await tablesDB.updateRow({
-                                databaseId,
-                                tableId,
-                                rowId,
-                                data: rowData
-                            });
-                        }
-                        if (databases && typeof databases.updateRow === 'function') {
-                            return await databases.updateRow({
-                                databaseId,
-                                tableId,
-                                rowId,
-                                data: rowData
-                            });
-                        }
-                        return await databases.updateDocument(databaseId, tableId, rowId, rowData);
-                    };
+                    onSnapshot(queueDocRef, async (snapshot) => {
+                        isFirestoreReady = true;
+                        const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                        setSyncStatus(true, currentT.liveStatus);
 
-                    const createRowSafe = async (rowData) => {
-                        if (tablesDB && typeof tablesDB.createRow === 'function') {
-                            return await tablesDB.createRow({
-                                databaseId,
-                                tableId,
-                                rowId,
-                                data: rowData,
-                                permissions: rowPermissions
-                            });
-                        }
-                        if (databases && typeof databases.createRow === 'function') {
-                            return await databases.createRow({
-                                databaseId,
-                                tableId,
-                                rowId,
-                                data: rowData,
-                                permissions: rowPermissions
-                            });
-                        }
-                        const createArgs = rowPermissions
-                            ? [databaseId, tableId, rowId, rowData, rowPermissions]
-                            : [databaseId, tableId, rowId, rowData];
-                        return await databases.createDocument(...createArgs);
-                    };
+                        if (snapshot.exists()) {
+                            const data = snapshot.data();
+                            const incomingStamp = Number(data?.updatedAt) || 0;
+                            if (activeMutations > 0 && incomingStamp && incomingStamp < lastLocalStamp) return;
 
-                    firestoreSaveFn = async (payload) => {
-                        const serialized = JSON.stringify(payload);
-                        const rowData = {
-                            payload: serialized
-                        };
-                        try {
-                            return await withTimeout(
-                                updateRowSafe(rowData),
-                                7000,
-                                'Appwrite updateRow timed out'
-                            );
-                        } catch (updateErr) {
-                            const msg = String(updateErr?.message || '').toLowerCase();
-                            const isMissing = updateErr?.code === 404 || msg.includes('404') || msg.includes('not found');
-                            if (!isMissing) {
-                                skipAutoCreateUntil = Date.now() + 15000;
-                                throw updateErr;
-                            }
-                            try {
-                                return await withTimeout(
-                                    createRowSafe(rowData),
-                                    7000,
-                                    'Appwrite createRow timed out'
-                                );
-                            } catch (createErr) {
-                                skipAutoCreateUntil = Date.now() + 15000;
-                                throw createErr;
-                            }
-                        }
-                    };
-
-                    if (account && typeof account.createAnonymousSession === 'function') {
-                        try {
-                            await withTimeout(account.createAnonymousSession(), 3000, 'Anonymous session timed out');
-                        } catch (_) {}
-                    }
-
-                    const syncOnce = async () => {
-                        try {
-                            const res = await withTimeout(
-                                getRowSafe(),
-                                7000,
-                                'Appwrite getRow timed out'
-                            );
-                            isAppwriteReady = true;
-                            const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                            setSyncStatus(true, currentT.liveStatus);
-
-                            let rawPayload = null;
-                            if (res && typeof res.payload === 'string' && res.payload.trim()) {
-                                rawPayload = JSON.parse(res.payload);
-                            } else if (res && typeof res === 'object') {
-                                rawPayload = res;
-                            }
-
-                            const docUpdatedAtMs = res && res.$updatedAt ? Date.parse(res.$updatedAt) : 0;
-                            const incomingStamp = Number(rawPayload?.updatedAt || docUpdatedAtMs || res?.updatedAt) || 0;
-                            if (activeMutations > 0 && incomingStamp && incomingStamp <= lastLocalStamp) return;
-
-                            if (rawPayload && (Array.isArray(rawPayload.clinicsList) || Array.isArray(rawPayload.ticketsList))) {
-                                applyRemoteState({
-                                    ...rawPayload,
-                                    updatedAt: incomingStamp || Date.now()
-                                }, { force: isFirstSnapshotLoad });
-                            }
+                            applyRemoteState(data, { force: isFirstSnapshotLoad });
 
                             if (isFirstSnapshotLoad) {
                                 clinicsList.forEach(c => {
@@ -2910,40 +2810,27 @@
 
                             renderHeader();
                             renderActiveView();
-                        } catch (syncErr) {
-                            const errMsg = String(syncErr?.message || '');
-                            const isNotFound = syncErr?.code === 404 || errMsg.includes('404') || errMsg.toLowerCase().includes('not found');
-                            if (isNotFound && Date.now() > skipAutoCreateUntil && typeof firestoreSaveFn === 'function') {
-                                try {
-                                    await firestoreSaveFn(buildAppwritePayload(Date.now()));
-                                } catch (_) {}
-                            }
-                            isAppwriteReady = false;
-                            const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
-                            setSyncStatus(false, currentT.offlineStatus);
-                            isFirstSnapshotLoad = false;
+                        } else {
+                            try {
+                                await runTransaction(db, async (transaction) => {
+                                    const checkSnap = await transaction.get(queueDocRef);
+                                    if (!checkSnap.exists()) {
+                                        const initialPayload = buildFirestorePayload(Date.now());
+                                        saveLocalCache(initialPayload);
+                                        transaction.set(queueDocRef, initialPayload);
+                                    }
+                                });
+                            } catch (_) {}
                         }
-                    };
-
-                    await syncOnce();
-                    setInterval(syncOnce, 2000);
-
-                    if (typeof client.subscribe === 'function') {
-                        try {
-                            client.subscribe(
-                                [
-                                    `databases.${databaseId}.tables.${tableId}.rows.${rowId}`,
-                                    `databases.${databaseId}.collections.${tableId}.documents.${rowId}`
-                                ],
-                                () => {
-                                    syncOnce();
-                                }
-                            );
-                        } catch (_) {}
-                    }
+                    }, (error) => {
+                        console.warn('خطأ في مزامنة Firestore:', error);
+                        isFirestoreReady = false;
+                        const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
+                        setSyncStatus(false, currentT.offlineStatus);
+                    });
                 } catch (err) {
-                    console.warn('تعذر الاتصال الفوري بـ Appwrite (العمل بالوضع المحلي الآمن):', err);
-                    isAppwriteReady = false;
+                    console.warn('تعذر الاتصال الفوري بـ Firestore (العمل بالوضع المحلي الآمن):', err);
+                    isFirestoreReady = false;
                     const currentT = UI_TEXTS[currentLanguage] || UI_TEXTS.ar;
                     setSyncStatus(false, currentT.offlineStatus);
                 }
@@ -2957,7 +2844,7 @@
                     applyRemoteState(cached, { force: true });
                 }
                 renderAll();
-                initAppwriteSync();
+                initFirebaseSync();
             });
         })();
     </script>
